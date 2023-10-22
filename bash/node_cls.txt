@@ -1,0 +1,6 @@
+./experiments/parameters_elliptic_egcn_o.yaml
+use CUDA: True - device: cuda
+MPI backend not preset. Set process rank to 0 (out of 1)
+Dataset splits sizes:  train 26 dev 5 test 13
+CLS num_feats 256
+Log file: log/log_elliptic_temporal_node_cls_egcn_o_20231022175544_r0.log

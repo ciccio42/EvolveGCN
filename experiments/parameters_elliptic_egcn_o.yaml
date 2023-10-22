@@ -1,11 +1,11 @@
 data: elliptic_temporal #HELP: arxiv, bitcoin, aml_sim, dbg, elliptic, elliptic_temporal
 elliptic_args:
-  folder: ./data/elliptic_temporal
-  tar_file: elliptic_bitcoin_dataset_cont.tar.gz
-  feats_file: elliptic_bitcoin_dataset_cont/elliptic_txs_features.csv
-  edges_file: elliptic_bitcoin_dataset_cont/elliptic_txs_edgelist_timed.csv
-  classes_file: elliptic_bitcoin_dataset_cont/elliptic_txs_classes.csv
-  times_file: elliptic_bitcoin_dataset_cont/elliptic_txs_nodetime.csv
+  folder: ./data
+  tar_file: elliptic.tar.gz
+  feats_file: elliptic_bitcoin_dataset/elliptic_txs_features.csv
+  edges_file: elliptic_bitcoin_dataset/elliptic_txs_edgelist_timed.csv
+  classes_file: elliptic_bitcoin_dataset/elliptic_txs_classes.csv
+  times_file: elliptic_bitcoin_dataset/elliptic_txs_nodetime.csv
   aggr_time: 1
 
 use_cuda: True
@@ -18,7 +18,7 @@ task: node_cls
 class_weights: [ 0.35, 0.65]
 use_2_hot_node_feats: False
 use_1_hot_node_feats: False
-save_node_embeddings: True
+save_node_embeddings: False
 
 train_proportion: 0.65
 dev_proportion: 0.1

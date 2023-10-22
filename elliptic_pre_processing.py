@@ -90,7 +90,7 @@ if __name__ == "__main__":
                 new_row = [row_number, time_stamp]
                 # write row
                 csv_writer.writerow(new_row)
-                node_id_to_timestamp_dict[row_number] = time_stamp
+                node_id_to_timestamp_dict[row[0]] = time_stamp
 
     # Step 4 - Modify elliptic_txs_edgelist.csv and rename it to elliptic_txs_edgelist_timed.csv
     with open('data/elliptic_bitcoin_dataset/elliptic_txs_edgelist.csv', 'r') as csv_file:
@@ -108,7 +108,7 @@ if __name__ == "__main__":
                     pass
                 else:
                     # change node id with new id
-                    assert node_id_to_timestamp_dict[old_id_to_new_id_dict[row[0]]] == node_id_to_timestamp_dict[old_id_to_new_id_dict[row[1]]
-                                                                                                                 ], f"Timestamp of nodes {old_id_to_new_id_dict[row[0]]} and {old_id_to_new_id_dict[row[1]]} must be equal"
+                    assert node_id_to_timestamp_dict[row[0]] == node_id_to_timestamp_dict[row[1]
+                                                                                          ], f"Timestamp of nodes {old_id_to_new_id_dict[row[0]]} and {old_id_to_new_id_dict[row[1]]} must be equal"
                     csv_writer.writerow(
-                        [old_id_to_new_id_dict[row[0]], old_id_to_new_id_dict[row[1]], float()])
+                        [old_id_to_new_id_dict[row[0]], old_id_to_new_id_dict[row[1]], float(node_id_to_timestamp_dict[row[0]])])
