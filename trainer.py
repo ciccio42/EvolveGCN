@@ -10,6 +10,7 @@ from node_anomaly_tasker import Anomaly_Detection_Tasker
 import models as mls
 from Reconstruction_Loss import ReconstructionLoss
 import wandb
+from tqdm import tqdm
 
 
 class Trainer():
@@ -20,6 +21,9 @@ class Trainer():
         self.gcn = gcn
         self.classifier = classifier
         self.comp_loss = comp_loss
+        self.chpt_dir = os.path.join(args.save_folder, args.project_name)
+
+        os.makedirs(self.chpt_dir, exist_ok=True)
 
         if not isinstance(dataset, IoT23_Dataset):
             self.num_nodes = dataset.num_nodes
@@ -116,7 +120,7 @@ class Trainer():
         epochs_without_impr = 0
 
         tolog = {}
-        for e in range(self.args.num_epochs):
+        for e in tqdm(range(self.args.num_epochs)):
             loss_train = self.run_epoch(
                 self.splitter.train, e, 'TRAIN', grad=True)
 
@@ -139,7 +143,11 @@ class Trainer():
                     epochs_without_impr = 0
                     print('### w'+str(self.args.rank)+') ep '+str(e) +
                           ' - Best valid measure:'+str(eval_valid))
-
+                    print(f'Saving best checkpoint epoch {e}')
+                    torch.save(self.gcn.state_dict(), os.path.join(
+                        self.chpt_dir, f"gnc_{e}.pt"))
+                    torch.save(self.classifier.state_dict(), os.path.join(
+                        self.chpt_dir, f"classifier_{e}.pt"))
                 else:
                     epochs_without_impr += 1
                     if epochs_without_impr > self.args.early_stop_patience:

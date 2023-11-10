@@ -45,7 +45,7 @@ class Anomaly_Detection_Tasker():
         return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
 
     def get_adj_matrix(self, graph, weight=False):
-        adj_mat = graph['adj']
+        adj_mat = graph['full_adj']
         adj_mat = torch.LongTensor(adj_mat)
         if not weight:
             vals = torch.ones(adj_mat.size(0), dtype=torch.long)
@@ -96,10 +96,12 @@ class Anomaly_Detection_Tasker():
                                          num_nodes=graph_data['n_nodes'])
 
             # 3. Create node features
-            node_feats = graph_data['node_features']
+            node_feats = self.get_node_features(graph=graph_data,
+                                                num_nodes=graph_data['n_nodes'])
 
             # 4. Create node labels
-            node_labels = self.get_node_labels(graph_data['node_labels'], idx)
+            node_labels = self.get_node_labels(
+                graph_data['label_new_indx_label'], idx)
 
             # 5. Normalize matrix
             cur_adj = tu.normalize_adj(
@@ -124,6 +126,15 @@ class Anomaly_Detection_Tasker():
         label_vals = labels[:, 1]
         return {'idx': label_idx,
                 'vals': label_vals}
+
+    def get_node_features(self, graph, num_nodes):
+        features = graph['node_features']
+        new_features = np.zeros((num_nodes, self.feats_per_node))
+        old_to_new_id_map = np.array(graph['features_new_old_map'])
+        new_features[old_to_new_id_map[:, 1]
+                     ] = features[old_to_new_id_map[:, 0]]
+
+        return new_features
 
 
 if __name__ == '__main__':

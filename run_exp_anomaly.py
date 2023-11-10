@@ -36,6 +36,9 @@ import trainer as tr
 
 import logger
 import wandb
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 def random_param_value(param, param_min, param_max, type='int'):
@@ -281,4 +284,4 @@ if __name__ == '__main__':
                          dataset=dataset,
                          num_classes=tasker.num_classes)
 
-    trainer.train()
+    trainer.train_anomaly()

@@ -1,8 +1,8 @@
 data: iot23 #HELP: arxiv, bitcoin, aml_sim, dbg, elliptic, elliptic_temporal
 iot23_args:
-  folder: /user/frosa/anomaly_detection_code/gnn-network-analysis/IDS/datasets/IoT23_dataset_split_temporal
+  folder: /user/frosa/anomaly_detection_code/gnn-network-analysis/IDS/datasets/IoT23_dataset_split
   only_benign: True
-  representation: tdg_graph
+  representation: etdg_graph
   feats_per_node: 57
   one_class: True
   graph_base_folder: /user/frosa/anomaly_dataset/IoT23/dataset/IoT23_graphs/
@@ -13,9 +13,9 @@ use_logfile: True
 model: egcn_o
 
 task: anomaly_detection
-wandb_log: True
+wandb_log: False
 project_name: EGCN_O_DOMINANT
-save_folder: 
+save_folder: /user/frosa/anomaly_detection_code/checkpoint_dir
 
 class_weights: [ 0.35, 0.65]
 use_2_hot_node_feats: False

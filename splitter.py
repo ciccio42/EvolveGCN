@@ -218,13 +218,15 @@ class AnomalyDataset(Dataset):
         # create a map between graph path and index
         graph_indx = 0
         for capture in self.data_dict.keys():
-            self.total_number_graphs += len(
-                self.data_dict[capture])
-            start_indx = graph_indx
-            for graph in self.data_dict[capture]:
-                self.indx_to_graph[graph_indx] = (capture, graph)
-                graph_indx += 1
-            self.capture_start_end_indx[capture] = [start_indx, graph_indx-1]
+            if "Honeypot" in capture:
+                self.total_number_graphs += len(
+                    self.data_dict[capture])
+                start_indx = graph_indx
+                for graph in self.data_dict[capture]:
+                    self.indx_to_graph[graph_indx] = (capture, graph)
+                    graph_indx += 1
+                self.capture_start_end_indx[capture] = [
+                    start_indx, graph_indx-1]
 
     def __len__(self):
         return self.total_number_graphs
