@@ -123,7 +123,7 @@ def get_node_mask(cur_adj, num_nodes):
     mask = torch.zeros(num_nodes) - float("Inf")
     non_zero = cur_adj['idx'].unique().to(torch.int32)
 
-    mask[non_zero] = 0
+    mask[non_zero] = 1
 
     return mask
 

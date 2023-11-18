@@ -9,7 +9,7 @@ import debugpy
 # datasets
 import bitcoin_dl as bc
 import elliptic_temporal_dl as ell_temp
-import iot23
+import anomaly
 import uc_irv_mess_dl as ucim
 import auto_syst_dl as aus
 import sbm_dl as sbm
@@ -37,6 +37,7 @@ import trainer as tr
 import logger
 import wandb
 import warnings
+import os
 
 warnings.filterwarnings("ignore")
 
@@ -122,7 +123,7 @@ def build_dataset(args):
     elif args.data == 'elliptic_temporal':
         return ell_temp.Elliptic_Temporal_Dataset(args)
     elif args.data == 'iot23':
-        return iot23.IoT23_Dataset(args)
+        return anomaly.Anomaly_Dataset(args)
     elif args.data == 'uc_irv_mess':
         return ucim.Uc_Irvine_Message_Dataset(args)
     elif args.data == 'dbg':
@@ -267,7 +268,8 @@ if __name__ == '__main__':
     # # build the models
     gcn = build_gcn(args, tasker)
     classifier = build_classifier(args, tasker)
-
+    detector = mls.AnomalyDetector(gcn=gcn,
+                                   head=classifier)
     # build a loss
     if isinstance(classifier, mls.Decoder):
         loss = rl.ReconstructionLoss(args=args,
@@ -275,13 +277,27 @@ if __name__ == '__main__':
     else:
         loss = ce.Cross_Entropy(args, dataset).to(args.device)
 
-    # trainer
-    trainer = tr.Trainer(args,
-                         splitter=splitter,
-                         gcn=gcn,
-                         classifier=classifier,
-                         comp_loss=loss,
-                         dataset=dataset,
-                         num_classes=tasker.num_classes)
+    if args.train:
+        # trainer
+        trainer = tr.TrainerAnomaly(args,
+                                    splitter=splitter,
+                                    detector=detector,
+                                    comp_loss=loss,
+                                    dataset=dataset,
+                                    num_classes=tasker.num_classes)
+        trainer.train_anomaly()
 
-    trainer.train_anomaly()
+    if args.test or args.off_line_test:
+        if args.off_line_test:
+            # load best model
+            print("Loading detector ....")
+            gcnn = torch.load(os.path.join(
+                args.save_folder, args.project_name, f"detector_{args.test_epoch}.pt"))
+            trainer = tr.TrainerAnomaly(args,
+                                        splitter=splitter,
+                                        detector=detector,
+                                        comp_loss=loss,
+                                        dataset=dataset,
+                                        num_classes=tasker.num_classes)
+        print("Test anomaly")
+        trainer.test_anomaly(compute_thr=args.compute_threshold)

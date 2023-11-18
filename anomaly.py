@@ -9,17 +9,36 @@ import numpy as np
 from collections import OrderedDict
 import glob
 import pickle
+from numpy import load
 
 
-class IoT23_Dataset():
+class Anomaly_Dataset():
 
     def __init__(self, args):
         args.iot23_args = u.Namespace(args.iot23_args)
         self.dataset_path = args.iot23_args.folder
+        self.iot_traces_path = args.iot23_args.folder_iot_traces
+        self.iot_id20_path = args.iot23_args.folder_iot_id20
+
         self.only_benign = args.iot23_args.only_benign
         self.representation = args.iot23_args.representation
         self.feats_per_node = args.iot23_args.feats_per_node
+
         self.graph_base_folder = args.iot23_args.graph_base_folder
+        self.graph_base_iot_traces_folder = args.iot23_args.graph_base_iot_traces_folder
+        self.graph_base_iot_id20_folder = args.iot23_args.graph_base_iot_id20_folder
+
+        self.normalize = args.iot23_args.normalize
+        self.sequence = args.iot23_args.sequence
+
+        # open min vector
+        print("Loading min vector")
+        with load(f'{args.iot23_args.path_min_max_vectors}/min.npz') as data:
+            self.min_vector = data['arr_0']
+        print("Loading max vector")
+        with load(f'{args.iot23_args.path_min_max_vectors}/max.npz') as data:
+            self.max_vector = data['arr_0']
+
         if args.iot23_args.one_class:
             self.num_classes = 1
         else:

@@ -5,6 +5,7 @@ from torch.nn.parameter import Parameter
 from torch.nn import functional as F
 import torch.nn as nn
 import math
+import numpy as np
 
 
 class Sp_GCN(torch.nn.Module):
@@ -96,10 +97,15 @@ class Sp_GCN_LSTM_A(Sp_GCN):
             num_layers=args.lstm_l2_layers
         )
 
+        model_parameters = filter(
+            lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print(f"LSTM_A parameter {params}")
+
     def forward(self, A_list, Nodes_list=None, nodes_mask_list=None):
         last_l_seq = []
         for t, Ahat in enumerate(A_list):
-            node_feats = Nodes_list[t]
+            node_feats = Nodes_list[t].float()
             # A_list: T, each element sparse tensor
             # note(bwheatman, tfk): change order of matrix multiply
             last_l = self.activation(Ahat.matmul(
@@ -112,7 +118,7 @@ class Sp_GCN_LSTM_A(Sp_GCN):
         last_l_seq = torch.stack(last_l_seq)
 
         out, _ = self.rnn(last_l_seq, None)
-        return out[-1]
+        return out
 
 
 class Sp_GCN_GRU_A(Sp_GCN_LSTM_A):
@@ -271,10 +277,14 @@ class Decoder(torch.nn.Module):
             self.dropout = dropout
 
         def forward(self, x, adj):
-            x = F.relu(self.gc1(x, adj))
+            x = self.gc1(x, adj)
+            # x = F.dropout(x, self.dropout, training=self.training)
+            # x = x @ x.T
             x = F.dropout(x, self.dropout, training=self.training)
-            x = x @ x.T
+            x = torch.sparse.mm(x, x.T)
 
+            # x = torch.sigmoid(x)
+            # print(self.gc1.weight)
             return x
 
     def __init__(self, args):
@@ -287,11 +297,49 @@ class Decoder(torch.nn.Module):
         self.sd = Decoder.Structure_Decoder(nhid=args.decoder_parameters["sd_nhid"],
                                             dropout=args.decoder_parameters["sd_dropout"]
                                             ).to(f"cuda:{args.decoder_parameters['device_id']}")
+        model_parameters = filter(
+            lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print(f"Decoder parameter {params}")
 
     def forward(self, adj_mat, feature_attribute):
+
         pred_attribute_mat = self.ad.forward(x=feature_attribute,
                                              adj=adj_mat)
         pred_adj_mat = self.sd.forward(x=feature_attribute,
                                        adj=adj_mat)
 
         return pred_attribute_mat, pred_adj_mat
+
+
+class AnomalyDetector(torch.nn.Module):
+
+    def __init__(self, gcn, head):
+        super(AnomalyDetector, self).__init__()
+        self.gcn = gcn
+        self.head = head
+
+        model_parameters = filter(
+            lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print(f"Anomaly Detector parameters {params}")
+
+    def parameters(self):
+        return [*self.gcn.parameters(), *self.head.parameters()]
+
+    def forward(self, hist_adj_list, hist_ndFeats_list, mask_list):
+        nodes_embs = self.gcn(hist_adj_list,
+                              hist_ndFeats_list,
+                              mask_list)
+
+        # run decoder inference
+        pred_attribute_list = []
+        pred_adj_list = []
+        for t, nodes_e in enumerate(nodes_embs):
+            # adj_mat, feature_attribute
+            pred_attribute_mat, pred_adj_mat = self.head(adj_mat=hist_adj_list[t],
+                                                         feature_attribute=nodes_e)
+            pred_attribute_list.append(pred_attribute_mat)
+            pred_adj_list.append(pred_adj_mat)
+
+        return pred_attribute_list, pred_adj_list

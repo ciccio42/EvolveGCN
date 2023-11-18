@@ -3,6 +3,7 @@ import torch
 from torch.nn.parameter import Parameter
 import torch.nn as nn
 import math
+import numpy as np
 
 
 class EGCN(torch.nn.Module):
@@ -26,6 +27,11 @@ class EGCN(torch.nn.Module):
             # print (i,'grcu_i', grcu_i)
             self.GRCU_layers.append(grcu_i.to(self.device))
             self._parameters.extend(list(self.GRCU_layers[-1].parameters()))
+
+        model_parameters = filter(
+            lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print(f"EGCN-o parameter {params}")
 
     def parameters(self):
         return self._parameters
