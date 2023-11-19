@@ -21,7 +21,7 @@ train: False
 test: True
 off_line_test: True
 test_epoch: 298
-compute_threshold: True
+compute_threshold: False
 
 model: lstmA
 

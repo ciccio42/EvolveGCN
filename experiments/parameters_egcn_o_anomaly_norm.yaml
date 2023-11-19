@@ -16,7 +16,7 @@ iot23_args:
   graph_base_iot_id20_folder: /user/frosa/anomaly_dataset/IoTID20/graphs/ 
   normalize: True
   path_min_max_vectors: /user/frosa/anomaly_detection_code/gnn-network-analysis/IDS/datasets/IoT23_min_max/min_max_etdg_graph
-  sequence: True
+  sequence: False
 
 use_cuda: True
 use_logfile: True

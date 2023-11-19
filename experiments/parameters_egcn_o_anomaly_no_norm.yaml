@@ -24,7 +24,7 @@ train: False
 test: True
 off_line_test: True
 test_epoch: 107
-compute_threshold: True
+compute_threshold: False
 
 model: egcn_o
 

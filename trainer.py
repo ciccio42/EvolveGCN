@@ -125,20 +125,20 @@ class TrainerAnomaly():
                 threshold = float(file.read())
 
         print(f"Testing threshold {threshold}")
-        self.run_test(split_name='validation',
-                      threshold=threshold)
-        self.run_test(split_name='iot_traces',
-                      threshold=threshold)
+        # self.run_test(split_name='validation',
+        #               threshold=threshold)
+        # self.run_test(split_name='iot_traces',
+        #               threshold=threshold)
         if not self.tasker.data.sequence:
 
-            self.run_test(split_name='test_benign',
-                          threshold=threshold)
-            self.run_test(split_name='test_malicious',
-                          threshold=threshold)
-            self.run_test(split_name='iot_id20_benign',
-                          threshold=threshold)
-            self.run_test(split_name='iot_id20_mixed',
-                          threshold=threshold)
+            # self.run_test(split_name='test_benign',
+            #               threshold=threshold)
+            # self.run_test(split_name='test_malicious',
+            #               threshold=threshold)
+            # self.run_test(split_name='iot_id20_benign',
+            #               threshold=threshold)
+            # self.run_test(split_name='iot_id20_mixed',
+            #               threshold=threshold)
             self.run_test(split_name='test_mixed',
                           threshold=threshold)
 
