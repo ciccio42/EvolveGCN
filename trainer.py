@@ -15,6 +15,9 @@ import pickle
 import matplotlib.pyplot as plt
 import json
 import gc
+import copy
+
+torch.autograd.set_detect_anomaly(True)
 
 
 class TrainerAnomaly():
@@ -24,7 +27,8 @@ class TrainerAnomaly():
         self.tasker = splitter.tasker
         self.detector = detector
         self.comp_loss = comp_loss
-        self.chpt_dir = os.path.join(args.save_folder, args.project_name)
+        self.chpt_dir = os.path.join(
+            args.save_folder, args.project_name)
 
         os.makedirs(self.chpt_dir, exist_ok=True)
 
@@ -97,8 +101,9 @@ class TrainerAnomaly():
             print(f"Computing threshold...")
             # 1. Run inference on validation set
             # labels have indx and value
+            self.detector.set_training(False)
             eval_scores, labels = self.run_epoch(
-                self.splitter.dev, -1, 'VALID', grad=False)
+                self.splitter.dev, -1, None, grad=False, test=True)
             # save scores
             os.makedirs(os.path.join(self.chpt_dir,
                         "threshold"), exist_ok=True)
@@ -119,23 +124,24 @@ class TrainerAnomaly():
             with open(file_path, 'r') as file:
                 threshold = float(file.read())
 
-        # self.run_test(split_name='validation',
-        #               threshold=threshold)
-        # self.run_test(split_name='iot_traces',
-        #               threshold=threshold)
+        print(f"Testing threshold {threshold}")
+        self.run_test(split_name='validation',
+                      threshold=threshold)
+        self.run_test(split_name='iot_traces',
+                      threshold=threshold)
         if not self.tasker.data.sequence:
 
             self.run_test(split_name='test_benign',
                           threshold=threshold)
             self.run_test(split_name='test_malicious',
                           threshold=threshold)
-            self.run_test(split_name='test_mixed',
-                          threshold=threshold)
-
             self.run_test(split_name='iot_id20_benign',
                           threshold=threshold)
             self.run_test(split_name='iot_id20_mixed',
                           threshold=threshold)
+            self.run_test(split_name='test_mixed',
+                          threshold=threshold)
+
         else:
             self.run_test(split_name='test_iot23',
                           threshold=threshold)
@@ -174,6 +180,7 @@ class TrainerAnomaly():
             epoch_name = None
             split = self.splitter.test_iotid20
 
+        self.detector.set_training(False)
         eval_scores, labels = self.run_epoch(
             split, -1, epoch_name, grad=False, test=True)
 
@@ -205,7 +212,8 @@ class TrainerAnomaly():
 
         for b in range(len(y_scores)):
             for t in range(len(y_scores[b])):
-                y_pred.append(y_scores[b][t][y_labels[b][t][0][0]] > threshold)
+                # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+                y_pred.append(y_scores[b][t] > threshold)
                 y_true.append(y_labels[b][t][1])
                 n_pred += y_labels[b][t][1].shape[0]
 
@@ -274,8 +282,10 @@ class TrainerAnomaly():
 
         for b in range(len(y_scores)):
             for t in range(len(y_scores[b])):
+                # max_score_for_sample = torch.max(
+                #     y_scores[b][t][y_labels[b][t][0]])
                 max_score_for_sample = torch.max(
-                    y_scores[b][t][y_labels[b][t][0][0]])
+                    y_scores[b][t])
                 if max_score_for_sample > max_score:
                     max_score = max_score_for_sample
 
@@ -317,7 +327,8 @@ class TrainerAnomaly():
         n_pred = 0.0
         for b in range(len(y_scores)):
             for t in range(len(y_scores[b])):
-                y_pred.append(y_scores[b][t][y_labels[b][t][0][0]] > threshold)
+                # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+                y_pred.append(y_scores[b][t] > threshold)
                 y_true.append(y_labels[b][t][1])
                 n_pred += y_labels[b][t][1].shape[0]
 
@@ -325,23 +336,30 @@ class TrainerAnomaly():
         fp_percentage = (fp / n_pred) * 100
         threshold_list.append(threshold)
         fp_list.append(fp)
-        final_threshold = threshold
+        final_threshold = copy.deepcopy(threshold)
         while fp_percentage > 1:
             if not self.data.normalize:
-                final_threshold += 1000
+                if fp_percentage > 2.0:
+                    final_threshold = copy.deepcopy(final_threshold+1000)
+                elif fp_percentage > 1.0 and fp_percentage < 2.0:
+                    final_threshold = copy.deepcopy(final_threshold+100)
             else:
-                final_threshold += 0.5
-            print(final_threshold)
+                if fp_percentage > 2.0:
+                    final_threshold = copy.deepcopy(final_threshold+0.01)
+                elif fp_percentage > 1.0 and fp_percentage < 2.0:
+                    final_threshold = copy.deepcopy(final_threshold+0.001)
+            print(f"Threshold {final_threshold}")
             y_pred = []
             for b in range(len(y_scores)):
                 for t in range(len(y_scores[b])):
-                    y_pred.append(
-                        y_scores[b][t][y_labels[b][t][0][0]] > threshold)
+                    # y_pred.append(
+                    #     y_scores[b][t][y_labels[b][t][0]] > final_threshold)
+                    y_pred.append(y_scores[b][t] > final_threshold)
             fp = find_fp(y_true, y_pred)
-            print(fp)
+            print(f"Number of fp: {fp}")
             fp_percentage = (fp / n_pred) * 100
-            print(fp_percentage)
-            threshold_list.append(threshold)
+            print(f"False positive rate {fp_percentage}")
+            threshold_list.append(final_threshold)
             fp_list.append(fp)
             if 0.9 < fp_percentage < 1:
                 break
@@ -361,61 +379,78 @@ class TrainerAnomaly():
             B = len(s_list)
 
             step = (epoch+1) * (indx+1)
+            loss_batch = 0.0
+            attr_error_batch = 0.0
+            stru_error_batch = 0.0
             for b_indx in range(B):
                 # each split contains a
                 s = self.prepare_sample_anomaly(s_list[b_indx])
 
-                pred_res = self.predict(s.hist_adj_list_norm,
-                                        s.hist_ndFeats_list,
-                                        s.label_sp,
-                                        s.node_mask_list)
+                if epoch != -1:
+                    pred_res = self.predict(s.hist_adj_list_norm,
+                                            s.hist_ndFeats_list,
+                                            s.label_sp,
+                                            s.node_mask_list)
+                else:
+                    with torch.no_grad():
+                        pred_res = self.predict(s.hist_adj_list_norm,
+                                                s.hist_ndFeats_list,
+                                                s.label_sp,
+                                                s.node_mask_list)
 
                 pred_attribute_list, pred_adj_list = pred_res
                 if isinstance(self.comp_loss, ReconstructionLoss) and epoch != -1:
                     # pred_adj, gt_adj, pred_attri, gt_attri
-                    loss_node = 0.0
-                    attr_error_node = 0.0
-                    stru_error_node = 0.0
-                    loss = 0.0
-                    attr_error = 0.0
-                    stru_error = 0.0
+                    loss_node = torch.zeros(
+                        (s.node_mask_list[0].shape)).to(self.args.device)
+                    attr_error_node = torch.zeros((s.node_mask_list[0].shape)).to(
+                        self.args.device)
+                    stru_error_node = torch.zeros((s.node_mask_list[0].shape)).to(
+                        self.args.device)
+                    full_node_mask_list = torch.zeros((s.node_mask_list[0].shape)).to(
+                        self.args.device)
                     for t in range(len(pred_adj_list)):
                         # compute the anomaly score for each timestamp
-                        loss_t, attr_error_t, stru_error_t = self.comp_loss(pred_adj=pred_adj_list[t],
-                                                                            gt_adj=s.hist_adj_list[t],
-                                                                            pred_attri=pred_attribute_list[t],
-                                                                            gt_attri=s.hist_ndFeats_list[t],
-                                                                            node_mask=s.node_mask_list[t],
-                                                                            partial_mat=s.hist_adj_list_partial[t],
-                                                                            test=test)
-                        loss_node += loss_t
-                        attr_error_node += attr_error_t
-                        stru_error_node += stru_error_t
+                        loss_t, attr_error_t, stru_error_t = self.comp_loss(
+                            pred_adj=pred_adj_list[t],
+                            gt_adj=s.hist_adj_list[t],
+                            pred_attri=pred_attribute_list[t],
+                            gt_attri=s.hist_ndFeats_list[t],
+                            node_mask=s.node_mask_list[t],
+                            partial_mat=s.hist_adj_list_partial[t],
+                            test=test)
 
-                    loss += torch.mean(loss_node/len(pred_adj_list))
-                    attr_error += torch.mean(attr_error_node /
-                                             len(pred_adj_list))
-                    stru_error += torch.mean(stru_error_node /
-                                             len(pred_adj_list))
+                        full_node_mask_list[s.node_mask_list[t] == 1] += 1
+                        loss_node[s.node_mask_list[t] == 1] += loss_t
+                        attr_error_node[s.node_mask_list[t]
+                                        == 1] += attr_error_t
+                        stru_error_node[s.node_mask_list[t]
+                                        == 1] += stru_error_t
 
-                    loss_epoch += loss
-                    attr_error_epoch += attr_error
-                    stru_error_epoch += stru_error
+                    # this is the loss for a sample in the batch
+                    # First average the single loss node over the time
+                    # Second average along the number of nodes dimension
+                    loss_batch += torch.mean(
+                        loss_node[full_node_mask_list != 0]/full_node_mask_list[full_node_mask_list != 0])
+                    attr_error_batch += torch.mean(attr_error_node[full_node_mask_list != 0] /
+                                                   full_node_mask_list[full_node_mask_list != 0])
+                    stru_error_batch += torch.mean(stru_error_node[full_node_mask_list != 0] /
+                                                   full_node_mask_list[full_node_mask_list != 0])
                 else:
                     scores_step = []
                     labels_step = []
+
                     for t in range(len(pred_adj_list)):
-                        with torch.no_grad():
-                            loss_t, _, _ = self.comp_loss(pred_adj=pred_adj_list[t],
-                                                          gt_adj=s.hist_adj_list[t],
-                                                          pred_attri=pred_attribute_list[t],
-                                                          gt_attri=s.hist_ndFeats_list[t],
-                                                          node_mask=s.node_mask_list[t],
-                                                          partial_mat=s.hist_adj_list_partial[t],
-                                                          test=test)
-                            scores_step.append(loss_t.cpu())
-                            labels_step.append(
-                                [s.label_sp[t]['idx'].cpu(), s.label_sp[t]['vals'].cpu()])
+                        loss_t, _, _ = self.comp_loss(pred_adj=pred_adj_list[t],
+                                                      gt_adj=s.hist_adj_list[t],
+                                                      pred_attri=pred_attribute_list[t],
+                                                      gt_attri=s.hist_ndFeats_list[t],
+                                                      node_mask=s.node_mask_list[t],
+                                                      partial_mat=s.hist_adj_list_partial[t],
+                                                      test=test)
+                        scores_step.append(loss_t.cpu())
+                        labels_step.append(
+                            [s.label_sp[t]['idx'].cpu(), s.label_sp[t]['vals'].cpu()])
 
                     scores_epoch.append(scores_step)
                     labels_epoch.append(labels_step)
@@ -424,11 +459,16 @@ class TrainerAnomaly():
                     gc.collect()
                     torch.cuda.empty_cache()
 
+            # average loss batch
+            loss_batch = loss_batch/B
+            # print(loss_batch)
+            attr_error_batch = attr_error_batch/B
+            stru_error_batch = stru_error_batch/B
             if set_name == 'VALID' and epoch != -1:
                 tolog['val_step'] = step
-                tolog[f'val_step/anomaly_score'] = loss
-                tolog[f'val_step/attr_error'] = attr_error
-                tolog[f'val_step/stru_error'] = stru_error
+                tolog[f'val_step/anomaly_score'] = loss_batch
+                tolog[f'val_step/attr_error'] = attr_error_batch
+                tolog[f'val_step/stru_error'] = stru_error_batch
                 # print(
                 #     f"Validation epoch {epoch} - step {step}: Anomaly Score {loss}")
                 if self.args.wandb_log:
@@ -436,20 +476,24 @@ class TrainerAnomaly():
 
             elif set_name == "TRAIN":
                 tolog['train_step'] = step
-                tolog[f'train_step/anomaly_score'] = loss
-                tolog[f'train_step/attr_error'] = attr_error
-                tolog[f'train_step/stru_error'] = stru_error
+                tolog[f'train_step/anomaly_score'] = loss_batch
+                tolog[f'train_step/attr_error'] = attr_error_batch
+                tolog[f'train_step/stru_error'] = stru_error_batch
                 # print(
                 #     f"Training epoch {epoch} - step {step}: Anomaly Score {loss}")
                 if self.args.wandb_log:
                     wandb.log(tolog)
 
             if grad:
-                self.optim_step(loss)
+                self.optim_step(loss_batch)
+
+            loss_epoch += loss_batch
+            attr_error_epoch += attr_error_batch
+            stru_error_epoch += stru_error_batch
 
         torch.set_grad_enabled(True)
         if epoch != -1:
-            return loss_epoch/indx, attr_error_epoch/indx, stru_error_epoch/indx
+            return loss_epoch/(indx+1), attr_error_epoch/(indx+1), stru_error_epoch/(indx+1)
         else:
             return scores_epoch, labels_epoch
 
@@ -463,7 +507,26 @@ class TrainerAnomaly():
         self.tr_step += 1
         # a = list(self.detector.parameters())[-1].clone()
         loss.backward()
+
+        # Print gradients
+        # for param in self.detector.parameters():
+        #     if param.requires_grad:
+        #         print(param.grad)
+
         # if self.tr_step % self.args.steps_accum_gradients == 0:
+        # clip_value = 1.0  # set a threshold value
+        # torch.nn.utils.clip_grad_norm_(
+        #     self.detector.parameters(),
+        #     max_norm=clip_value,
+        #     error_if_nonfinite=True)
+
+        # for i, param in enumerate(self.detector.parameters()):
+        #     if param.requires_grad:
+        #         # print(torch.norm(param.grad))
+        #         tolog[f"param_norm_{i}"] = param.grad
+        if self.args.wandb_log:
+            wandb.log(tolog)
+
         self.detector_opt.step()
         self.detector_opt.zero_grad()
         # b = list(self.detector.parameters())[-1].clone()

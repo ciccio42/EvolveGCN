@@ -1,3 +1,6 @@
+# Important parameters
+# normalize, train, project_name, wandb_log, compute_threshold, sequence, test_epoch
+
 data: iot23 #HELP: arxiv, bitcoin, aml_sim, dbg, elliptic, elliptic_temporal
 iot23_args:
   folder: /user/frosa/anomaly_detection_code/gnn-network-analysis/IDS/datasets/IoT23_dataset_split
@@ -17,17 +20,17 @@ iot23_args:
 
 use_cuda: True
 use_logfile: True
-train: True
-test: False
-off_line_test: False
-test_epoch: 88
+train: False
+test: True
+off_line_test: True
+test_epoch: 257
 compute_threshold: False
 
-model: lstmA
+model: egcn_o
 
 task: anomaly_detection
-wandb_log: True
-project_name: LSTM_SCALE_IoT23
+wandb_log: False
+project_name: EGCN_O_DOMINANT_SCALE_IoT23
 save_folder: /user/frosa/anomaly_detection_code/checkpoint_dir
 
 class_weights: [ 0.35, 0.65]
@@ -49,13 +52,14 @@ target_class: 1 # Target class to get the measure to define the best epoch (all,
 early_stop_patience: 25
 
 eval_after_epochs: 1
-adj_mat_time_window: 5
+adj_mat_time_window: 3
 num_hist_steps: 1 # number of previous steps used for prediction
 num_hist_steps_min: 1
 num_hist_steps_max: 1
 data_loading_params:
   batch_size: 3
-  num_workers: 8
+  num_workers: 16
+
 
 gcn_parameters:
   feats_per_node: 72
@@ -69,7 +73,7 @@ gcn_parameters:
   k_top_grcu: 200
   num_layers: 2
   lstm_l1_layers: 125
-  lstm_l1_feats: 16  # only used with sp_lstm_B_trainer
+  lstm_l1_feats: 100  # only used with sp_lstm_B_trainer
   lstm_l1_feats_min: 50
   lstm_l1_feats_max: 500
   lstm_l2_layers: 1 # only used with both sp_lstm_A_trainer and sp_lstm_B_trainer

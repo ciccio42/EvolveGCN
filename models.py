@@ -106,18 +106,29 @@ class Sp_GCN_LSTM_A(Sp_GCN):
         last_l_seq = []
         for t, Ahat in enumerate(A_list):
             node_feats = Nodes_list[t].float()
+            # assert (torch.count_nonzero(torch.isnan(node_feats))
+            #         ) == 0, f"Node feat {t} containes nan"
             # A_list: T, each element sparse tensor
             # note(bwheatman, tfk): change order of matrix multiply
             last_l = self.activation(Ahat.matmul(
                 node_feats.matmul(self.w_list[0])))
+            # assert (torch.count_nonzero(torch.isnan(self.w_list[0]))
+            #         ) == 0, f"w_list 0 containes nan"
             for i in range(1, self.num_layers):
+                # assert (torch.count_nonzero(torch.isnan(self.w_list[i]))
+                #         ) == 0, f"w_list {i} containes nan"
+                # assert (torch.count_nonzero(torch.isnan(self.w_list[i]))
+                #         ) == 0, f"last_l {i} containes nan"
                 last_l = self.activation(
                     Ahat.matmul(last_l.matmul(self.w_list[i])))
             last_l_seq.append(last_l)
 
         last_l_seq = torch.stack(last_l_seq)
-
+        # assert (torch.count_nonzero(torch.isnan(last_l_seq))
+        #         ) == 0, f"input lstm contains nan"
         out, _ = self.rnn(last_l_seq, None)
+        # assert (torch.count_nonzero(torch.isnan(out))
+        #         ) == 0, f"out lstm contains nan"
         return out
 
 
@@ -262,11 +273,18 @@ class Decoder(torch.nn.Module):
             self.gc2 = Decoder.GraphConvolution(nhid, nfeat)
             self.dropout = dropout
 
-        def forward(self, x, adj):
+        def forward(self, x, adj, labels):
+            # assert (torch.count_nonzero(torch.isnan(x))
+            #         ) == 0, "Input Attribute decoder contains nan"
             x = F.relu(self.gc1(x, adj))
+            # assert (torch.count_nonzero(torch.isnan(x))
+            #         ) == 0, "GC1 decoder contains nan"
             x = F.dropout(x, self.dropout, training=self.training)
-            x = self.gc2(x, adj)
-
+            # assert (torch.count_nonzero(torch.isnan(x))
+            #         ) == 0, "Dropout decoder contains nan"
+            x = self.gc2(x, adj)[labels == 1, :]
+            # assert (torch.count_nonzero(torch.isnan(x))
+            #         ) == 0, "GC2 decoder contains nan"
             return x
 
     class Structure_Decoder(nn.Module):
@@ -276,16 +294,23 @@ class Decoder(torch.nn.Module):
             self.gc1 = Decoder.GraphConvolution(nhid, nhid)
             self.dropout = dropout
 
-        def forward(self, x, adj):
+        def forward(self, x, adj, labels):
             x = self.gc1(x, adj)
             # x = F.dropout(x, self.dropout, training=self.training)
-            # x = x @ x.T
             x = F.dropout(x, self.dropout, training=self.training)
-            x = torch.sparse.mm(x, x.T)
+            # x = x @ x.T
+            # take element of interest
+            x = x[labels == 1, :]
+            # reconstruct only sub-network
+            # x = torch.sigmoid(x @ x.T)
+            x = x @ x.T
 
+            return x
+
+            # # assert (torch.count_nonzero(x < 0.0) ==
+            #         0), "dot product less then zero"
             # x = torch.sigmoid(x)
             # print(self.gc1.weight)
-            return x
 
     def __init__(self, args):
         super(Decoder, self).__init__()
@@ -302,12 +327,18 @@ class Decoder(torch.nn.Module):
         params = sum([np.prod(p.size()) for p in model_parameters])
         print(f"Decoder parameter {params}")
 
-    def forward(self, adj_mat, feature_attribute):
+    def set_training(self, training):
+        self.ad.training = training
+        self.sd.training = training
+
+    def forward(self, adj_mat, feature_attribute, labels, test=True):
 
         pred_attribute_mat = self.ad.forward(x=feature_attribute,
-                                             adj=adj_mat)
+                                             adj=adj_mat,
+                                             labels=labels)
         pred_adj_mat = self.sd.forward(x=feature_attribute,
-                                       adj=adj_mat)
+                                       adj=adj_mat,
+                                       labels=labels)
 
         return pred_attribute_mat, pred_adj_mat
 
@@ -324,6 +355,11 @@ class AnomalyDetector(torch.nn.Module):
         params = sum([np.prod(p.size()) for p in model_parameters])
         print(f"Anomaly Detector parameters {params}")
 
+    def set_training(self, training=True):
+        self.training = training
+        self.gcn.training = training
+        self.head.set_training(training)
+
     def parameters(self):
         return [*self.gcn.parameters(), *self.head.parameters()]
 
@@ -338,7 +374,8 @@ class AnomalyDetector(torch.nn.Module):
         for t, nodes_e in enumerate(nodes_embs):
             # adj_mat, feature_attribute
             pred_attribute_mat, pred_adj_mat = self.head(adj_mat=hist_adj_list[t],
-                                                         feature_attribute=nodes_e)
+                                                         feature_attribute=nodes_e,
+                                                         labels=mask_list[t])
             pred_attribute_list.append(pred_attribute_mat)
             pred_adj_list.append(pred_adj_mat)
 

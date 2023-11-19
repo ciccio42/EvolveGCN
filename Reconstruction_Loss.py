@@ -24,14 +24,27 @@ class ReconstructionLoss(torch.nn.Module):
         #                                                             pos_weight_s=self.pos_weight_s,
         #                                                             BCE_s=self.bce_s)
 
-        score, attr_error, stru_error = self.objective_function(ground_truth_node_feat=gt_attri.to_dense(),
-                                                                reconstructed_node_feat=pred_attri.to_dense(),
-                                                                ground_truth_node_struct=gt_adj.to_dense(),
-                                                                reconstructed_node_struct=pred_adj.to_dense(),
-                                                                alpha=self.weight,
-                                                                pos_weight_a=self.pos_weight_a,
-                                                                pos_weight_s=self.pos_weight_s,
-                                                                BCE_s=self.bce_s)
+        # score, attr_error, stru_error = self.objective_function(
+        #     ground_truth_node_feat=gt_attri.to_dense()[node_mask == 1, :],
+        #     reconstructed_node_feat=pred_attri.to_dense(),
+        #     ground_truth_node_struct=gt_adj.to_dense(
+        #     )[node_mask == 1, :][:, node_mask == 1],
+        #     reconstructed_node_struct=pred_adj.to_dense(),
+        #     alpha=self.weight,
+        #     pos_weight_a=self.pos_weight_a,
+        #     pos_weight_s=self.pos_weight_s,
+        #     BCE_s=self.bce_s,
+        #     test=test)
+        score, attr_error, stru_error = self.objective_function(
+            ground_truth_node_feat=gt_attri.to_dense()[node_mask == 1, :],
+            reconstructed_node_feat=pred_attri.to_dense(),
+            ground_truth_node_struct=partial_mat,
+            reconstructed_node_struct=pred_adj.to_dense(),
+            alpha=self.weight,
+            pos_weight_a=self.pos_weight_a,
+            pos_weight_s=self.pos_weight_s,
+            BCE_s=self.bce_s,
+            test=test)
 
         return score, attr_error, stru_error
 
@@ -43,7 +56,8 @@ class ReconstructionLoss(torch.nn.Module):
                            alpha=0.5,
                            pos_weight_a=0.5,
                            pos_weight_s=0.5,
-                           BCE_s=False):
+                           BCE_s=False,
+                           test=False):
         """
         Objective function of the proposed deep graph convolutional autoencoder, defined as
         :math:`\alpha \symbf{R_a} +  (1-\alpha) \symbf{R_s}`,
@@ -99,6 +113,10 @@ class ReconstructionLoss(torch.nn.Module):
             "positive weight must be a float between 0 and 1."
 
         # attribute reconstruction loss
+        # assert (torch.count_nonzero(torch.isnan(ground_truth_node_feat))
+        #         ) == 0, "GT node feat contains nan"
+        # assert (torch.count_nonzero(torch.isnan(reconstructed_node_feat))
+        #         ) == 0, "Reconstructed node feat contains nan"
         diff_attr = torch.pow(ground_truth_node_feat -
                               reconstructed_node_feat, 2)
 
@@ -114,8 +132,14 @@ class ReconstructionLoss(torch.nn.Module):
             diff_stru = F.binary_cross_entropy(
                 reconstructed_node_struct, ground_truth_node_struct, reduction='none')
         else:
-            diff_stru = torch.pow(
-                ground_truth_node_struct - reconstructed_node_struct, 2)
+            # assert (torch.count_nonzero(torch.isnan(ground_truth_node_struct))
+            #         ) == 0, "GT node struct contains nan"
+            # assert (torch.count_nonzero(torch.isnan(reconstructed_node_struct))
+            #         ) == 0, "Reconstructed node struct contains nan"
+
+            diff_stru = ground_truth_node_struct - reconstructed_node_struct
+
+            diff_stru = torch.pow(diff_stru, 2)
 
         if pos_weight_s != 0.5:
             diff_stru = torch.where(ground_truth_node_struct > 0,
@@ -124,6 +148,11 @@ class ReconstructionLoss(torch.nn.Module):
 
         stru_error = torch.sqrt(torch.sum(diff_stru, 1))
 
-        score = alpha * attr_error + (1 - alpha) * stru_error
+        if test:
+            score = alpha * attr_error.to("cpu") + \
+                (1 - alpha) * stru_error.to("cpu")
+        else:
+            score = alpha * attr_error + \
+                (1 - alpha) * stru_error
         # score = stru_error
         return score, attr_error, stru_error

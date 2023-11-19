@@ -14,23 +14,23 @@ iot23_args:
   graph_base_folder: /user/frosa/anomaly_dataset/IoT23/dataset/IoT23_graphs/
   graph_base_iot_traces_folder: /user/frosa/anomaly_dataset/IoT_traces/graphs/
   graph_base_iot_id20_folder: /user/frosa/anomaly_dataset/IoTID20/graphs/ 
-  normalize: True
+  normalize: False
   path_min_max_vectors: /user/frosa/anomaly_detection_code/gnn-network-analysis/IDS/datasets/IoT23_min_max/min_max_etdg_graph
-  sequence: True 
+  sequence: False
 
 use_cuda: True
 use_logfile: True
-train: True
-test: False
-off_line_test: False
-test_epoch: 52
-compute_threshold: False
+train: False
+test: True
+off_line_test: True
+test_epoch: 107
+compute_threshold: True
 
 model: egcn_o
 
 task: anomaly_detection
-wandb_log: True
-project_name: EGCN_O_DOMINANT_SCALE_IoT23
+wandb_log: False
+project_name: EGCN_O_DOMINANT_NO_SCALE_IoT23
 save_folder: /user/frosa/anomaly_detection_code/checkpoint_dir
 
 class_weights: [ 0.35, 0.65]
@@ -52,13 +52,13 @@ target_class: 1 # Target class to get the measure to define the best epoch (all,
 early_stop_patience: 25
 
 eval_after_epochs: 1
-adj_mat_time_window: 5
+adj_mat_time_window: 3
 num_hist_steps: 1 # number of previous steps used for prediction
 num_hist_steps_min: 1
 num_hist_steps_max: 1
 data_loading_params:
   batch_size: 3
-  num_workers: 8
+  num_workers: 16
 
 
 gcn_parameters:

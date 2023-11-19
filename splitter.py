@@ -309,8 +309,8 @@ class AnomalyDataset(Dataset):
 
                 if split == 'test_mixed' or split == "train" or split == "val":
                     self.data_dict.pop('CTU-IoT-Malware-Capture-9-1', None)
-                    self.data_dict.pop('CTU-IoT-Malware-Capture-1-1', None)
-                    self.data_dict.pop('CTU-IoT-Malware-Capture-48-1', None)
+                    # self.data_dict.pop('CTU-IoT-Malware-Capture-1-1', None)
+                    # self.data_dict.pop('CTU-IoT-Malware-Capture-48-1', None)
                     # self.data_dict.pop('CTU-IoT-Malware-Capture-3-1', None)
                     # self.data_dict.pop('CTU-IoT-Malware-Capture-42-1', None)
                     # self.data_dict.pop('CTU-IoT-Malware-Capture-34-1', None)

@@ -31,13 +31,14 @@ class Anomaly_Dataset():
         self.normalize = args.iot23_args.normalize
         self.sequence = args.iot23_args.sequence
 
-        # open min vector
-        print("Loading min vector")
-        with load(f'{args.iot23_args.path_min_max_vectors}/min.npz') as data:
-            self.min_vector = data['arr_0']
-        print("Loading max vector")
-        with load(f'{args.iot23_args.path_min_max_vectors}/max.npz') as data:
-            self.max_vector = data['arr_0']
+        if self.normalize:
+            # open min vector
+            print("Loading min vector")
+            with load(f'{args.iot23_args.path_min_max_vectors}/min.npz') as data:
+                self.min_vector = data['arr_0']
+            print("Loading max vector")
+            with load(f'{args.iot23_args.path_min_max_vectors}/max.npz') as data:
+                self.max_vector = data['arr_0']
 
         if args.iot23_args.one_class:
             self.num_classes = 1

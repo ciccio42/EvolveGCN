@@ -131,7 +131,10 @@ class Anomaly_Detection_Tasker():
 
             # 3. Create node features
             node_feats = self.get_node_features(graph=graph_data,
-                                                num_nodes=graph_data['n_nodes'])
+                                                num_nodes=graph_data['n_nodes'],
+                                                capture=capture_name,
+                                                graph_type=graph_type,
+                                                graph_name=graph_list[start+i][1])
 
             # 4. Create node labels
             node_labels = self.get_node_labels(
@@ -165,18 +168,23 @@ class Anomaly_Detection_Tasker():
         return {'idx': label_idx,
                 'vals': label_vals}
 
-    def get_node_features(self, graph, num_nodes):
+    def get_node_features(self, graph, num_nodes, capture, graph_type, graph_name):
         features = graph['node_features']
+        # normalize features
+        if self.data.normalize:
+            features = (features-self.data.min_vector) / \
+                (self.data.max_vector-self.data.min_vector)
+            features = np.nan_to_num(features, nan=0.0)
+            # assert np.max(
+            #     features) <= 1.0, f"max {np.max(features)}: {capture}-{graph_type}-{graph_name}"
+            # assert np.count_nonzero(
+            #     features < 0.0) == 0, f"input < 0.0: {np.max(features)}: {capture}-{graph_type}-{graph_name}"
+            # assert np.count_nonzero(np.isnan(
+            #     features)) == 0, f"Input nan: {np.max(features)}: {capture}-{graph_type}-{graph_name}"
         new_features = np.zeros((num_nodes, self.feats_per_node))
         old_to_new_id_map = np.array(graph['features_new_old_map'])
         new_features[old_to_new_id_map[:, 1]
                      ] = features[old_to_new_id_map[:, 0]][:, :self.feats_per_node]
-
-        # normalize features
-        if self.data.normalize:
-            new_features = (new_features-self.data.min_vector) / \
-                (self.data.max_vector-self.data.min_vector)
-            new_features = np.nan_to_num(new_features, nan=0.0)
         return new_features
 
 
