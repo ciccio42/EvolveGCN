@@ -20,14 +20,14 @@ use_logfile: True
 train: False
 test: True
 off_line_test: True
-test_epoch: 141
+test_epoch: -1
 compute_threshold: False
 
 model: lstmA
 
 task: anomaly_detection
 wandb_log: False
-project_name: LSTM_SCALE_IoT23
+project_name: LSTM_SCALE_64
 save_folder: /user/frosa/anomaly_detection_code/checkpoint_dir
 
 class_weights: [ 0.35, 0.65]
@@ -54,14 +54,14 @@ num_hist_steps: 1 # number of previous steps used for prediction
 num_hist_steps_min: 1
 num_hist_steps_max: 1
 data_loading_params:
-  batch_size: 3
+  batch_size: 4
   num_workers: 8
 
 gcn_parameters:
   feats_per_node: 72
   feats_per_node_min: 30
   feats_per_node_max: 312
-  layer_1_feats: 72
+  layer_1_feats: 64
   layer_1_feats_min: 30
   layer_1_feats_max: 500
   layer_2_feats: None
@@ -69,7 +69,7 @@ gcn_parameters:
   k_top_grcu: 200
   num_layers: 2
   lstm_l1_layers: 125
-  lstm_l1_feats: 16  # only used with sp_lstm_B_trainer
+  lstm_l1_feats: 64  # only used with sp_lstm_B_trainer
   lstm_l1_feats_min: 50
   lstm_l1_feats_max: 500
   lstm_l2_layers: 1 # only used with both sp_lstm_A_trainer and sp_lstm_B_trainer
@@ -80,10 +80,10 @@ gcn_parameters:
   cls_feats_max: 700
 
 decoder_parameters:
-  sd_nhid: 16 # structure decoder hidden dimension
+  sd_nhid: 64 # structure decoder hidden dimension
   sd_dropout: 0.3 # structure decoder hidden dimension
   ad_nfeat: 72 # 
-  ad_nhid: 16 #
+  ad_nhid: 64 #
   ad_dropout: 0.3 #
   device_id: 0
 

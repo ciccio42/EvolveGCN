@@ -309,7 +309,7 @@ class AnomalyDataset(Dataset):
 
                 if split == 'test_mixed' or split == "train" or split == "val":
                     self.data_dict.pop('CTU-IoT-Malware-Capture-9-1', None)
-                    # self.data_dict.pop('CTU-IoT-Malware-Capture-1-1', None)
+                    self.data_dict.pop('CTU-IoT-Malware-Capture-1-1', None)
                     self.data_dict.pop('CTU-IoT-Malware-Capture-48-1', None)
                     # self.data_dict.pop('CTU-IoT-Malware-Capture-3-1', None)
                     # self.data_dict.pop('CTU-IoT-Malware-Capture-42-1', None)
@@ -355,11 +355,12 @@ class AnomalyDataset(Dataset):
                 partition_to_graph = OrderedDict()
                 with open(partition) as data_file:
                     self.data_dict_partition = json.load(data_file)
-                if partition_name == 'test_mixed':
-                    self.data_dict.pop('CTU-IoT-Malware-Capture-9-1', None)
-                    self.data_dict.pop('CTU-IoT-Malware-Capture-1-1', None)
-                    self.data_dict.pop('CTU-IoT-Malware-Capture-48-1', None)
-                    self.data_dict.pop('CTU-IoT-Malware-Capture-3-1', None)
+                # if partition_name == 'test_mixed':
+                print("Removing samples")
+                self.data_dict.pop('CTU-IoT-Malware-Capture-9-1', None)
+                self.data_dict.pop('CTU-IoT-Malware-Capture-1-1', None)
+                self.data_dict.pop('CTU-IoT-Malware-Capture-48-1', None)
+                # self.data_dict.pop('CTU-IoT-Malware-Capture-3-1', None)
                 for capture in self.data_dict_partition:
                     partition_to_graph[capture] = OrderedDict()
                     if self.data_dict.get(capture, None) is None:

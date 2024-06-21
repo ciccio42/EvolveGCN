@@ -41,12 +41,25 @@ class EGCN(torch.nn.Module):
 
         for unit in self.GRCU_layers:
             Nodes_list = unit(A_list, Nodes_list)  # ,nodes_mask_list)
-
         # out = Nodes_list[-1]
         # if self.skipfeats:
         #     # use node_feats.to_dense() if 2hot encoded input
         #     out = torch.cat((out, node_feats), dim=1)
         out_sequence = Nodes_list
+        return out_sequence
+
+    def initialize_weights(self):
+        for unit in self.GRCU_layers:
+            unit.initialize_weights()
+
+    def forward_single_step(self, A, Nodes, nodes_mask):
+        node_feats = Nodes[-1]
+
+        for unit in self.GRCU_layers:
+            Nodes = unit.forward_single_step(
+                A, Nodes)  # ,nodes_mask_list)
+
+        out_sequence = Nodes
         return out_sequence
 
 
@@ -70,16 +83,41 @@ class GRCU(torch.nn.Module):
         stdv = 1. / math.sqrt(t.size(1))
         t.data.uniform_(-stdv, stdv)
 
+    def initialize_weights(self):
+        self.GCN_weights_single_step = self.GCN_init_weights
+
+    def forward_single_step(self, A_list, node_embs_list):
+        node_embs = node_embs_list.to(torch.float32)
+        # first evolve the weights from the initial and use the new weights with the node_embs
+        # ,node_embs,mask_list[t])
+        GCN_weights = self.evolve_weights(GCN_weights)
+        node_embs = self.activation(
+            A_list.matmul(node_embs.matmul(GCN_weights)))
+
+        return node_embs
+
     def forward(self, A_list, node_embs_list):  # ,mask_list):
         GCN_weights = self.GCN_init_weights
         out_seq = []
         for t, Ahat in enumerate(A_list):
             node_embs = node_embs_list[t].to(torch.float32)
+            assert (torch.count_nonzero(torch.isinf(node_embs))
+                    ) == 0, "node_embs contains inf"
             # first evolve the weights from the initial and use the new weights with the node_embs
             # ,node_embs,mask_list[t])
             GCN_weights = self.evolve_weights(GCN_weights)
+            assert (torch.count_nonzero(torch.isinf(GCN_weights))
+                    ) == 0, "GCN_weights contains inf"
+            assert (torch.count_nonzero(torch.isnan(node_embs.matmul(GCN_weights)))
+                    ) == 0, "node_embs.matmul(GCN_weights) contains nan"
+            assert (torch.count_nonzero(torch.isinf(node_embs.matmul(GCN_weights)))
+                    ) == 0, "node_embs.matmul(GCN_weights) contains inf"
             node_embs = self.activation(
                 Ahat.matmul(node_embs.matmul(GCN_weights)))
+            assert (torch.count_nonzero(torch.isnan(node_embs))
+                    ) == 0, "node_embs contains nan"
+            assert (torch.count_nonzero(torch.isinf(node_embs))
+                    ) == 0, "node_embs contains inf"
 
             out_seq.append(node_embs)
 

@@ -135,11 +135,16 @@ class Sp_GCN_LSTM_A(Sp_GCN):
 class Sp_GCN_GRU_A(Sp_GCN_LSTM_A):
     def __init__(self, args, activation):
         super().__init__(args, activation)
+        print("GRU-A")
         self.rnn = nn.GRU(
             input_size=args.layer_2_feats,
             hidden_size=args.lstm_l2_feats,
             num_layers=args.lstm_l2_layers
         )
+        model_parameters = filter(
+            lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print(f"GRU_A parameter {params}")
 
 
 class Sp_GCN_LSTM_B(Sp_GCN):
@@ -184,7 +189,7 @@ class Sp_GCN_LSTM_B(Sp_GCN):
         l2_seq = torch.stack(l2_seq)
 
         out, _ = self.rnn_l2(l2_seq, None)
-        return out[-1]
+        return out
 
 
 class Sp_GCN_GRU_B(Sp_GCN_LSTM_B):
@@ -274,12 +279,12 @@ class Decoder(torch.nn.Module):
             self.dropout = dropout
 
         def forward(self, x, adj, labels):
-            # assert (torch.count_nonzero(torch.isnan(x))
-            #         ) == 0, "Input Attribute decoder contains nan"
+            assert (torch.count_nonzero(torch.isnan(x))
+                    ) == 0, "Input Attribute decoder contains nan"
             x = F.relu(self.gc1(x, adj))
-            # assert (torch.count_nonzero(torch.isnan(x))
-            #         ) == 0, "GC1 decoder contains nan"
-            x = F.dropout(x, self.dropout, training=self.training)
+            assert (torch.count_nonzero(torch.isnan(x))
+                    ) == 0, "GC1 decoder contains nan"
+            x = F.dropout(x, self.dropout, training=False)  # self.training)
             # assert (torch.count_nonzero(torch.isnan(x))
             #         ) == 0, "Dropout decoder contains nan"
             x = self.gc2(x, adj)[labels == 1, :]
@@ -297,7 +302,8 @@ class Decoder(torch.nn.Module):
         def forward(self, x, adj, labels):
             x = self.gc1(x, adj)
             # x = F.dropout(x, self.dropout, training=self.training)
-            x = F.dropout(x, self.dropout, training=self.training)
+            # training=self.training)
+            x = F.dropout(x, self.dropout, training=False)
             # x = x @ x.T
             # take element of interest
             x = x[labels == 1, :]
@@ -359,6 +365,12 @@ class AnomalyDetector(torch.nn.Module):
         self.training = training
         self.gcn.training = training
         self.head.set_training(training)
+
+    def initialize_weights(self):
+        self.gcn.initialize_weights()
+
+    def forward_single_step(self, hist_adj_list, hist_ndFeats_list, mask_list):
+        pass
 
     def parameters(self):
         return [*self.gcn.parameters(), *self.head.parameters()]

@@ -177,14 +177,16 @@ def parse_args(parser):
         args.gcn_parameters['feats_per_node'], args.gcn_parameters['feats_per_node_min'], args.gcn_parameters['feats_per_node_max'], type='int')
     args.gcn_parameters['layer_1_feats'] = random_param_value(
         args.gcn_parameters['layer_1_feats'], args.gcn_parameters['layer_1_feats_min'], args.gcn_parameters['layer_1_feats_max'], type='int')
-    if args.gcn_parameters['layer_2_feats_same_as_l1'] or args.gcn_parameters['layer_2_feats_same_as_l1'].lower() == 'true':
+    # or args.gcn_parameters['layer_2_feats_same_as_l1'].lower() == 'true':
+    if args.gcn_parameters['layer_2_feats_same_as_l1']:
         args.gcn_parameters['layer_2_feats'] = args.gcn_parameters['layer_1_feats']
     else:
         args.gcn_parameters['layer_2_feats'] = random_param_value(
             args.gcn_parameters['layer_2_feats'], args.gcn_parameters['layer_1_feats_min'], args.gcn_parameters['layer_1_feats_max'], type='int')
     args.gcn_parameters['lstm_l1_feats'] = random_param_value(
         args.gcn_parameters['lstm_l1_feats'], args.gcn_parameters['lstm_l1_feats_min'], args.gcn_parameters['lstm_l1_feats_max'], type='int')
-    if args.gcn_parameters['lstm_l2_feats_same_as_l1'] or args.gcn_parameters['lstm_l2_feats_same_as_l1'].lower() == 'true':
+    # or args.gcn_parameters['lstm_l2_feats_same_as_l1'].lower() == 'true':
+    if args.gcn_parameters['lstm_l2_feats_same_as_l1']:
         args.gcn_parameters['lstm_l2_feats'] = args.gcn_parameters['lstm_l1_feats']
     else:
         args.gcn_parameters['lstm_l2_feats'] = random_param_value(

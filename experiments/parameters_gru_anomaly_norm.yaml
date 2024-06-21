@@ -11,7 +11,7 @@ iot23_args:
   graph_base_folder: /user/frosa/anomaly_dataset/IoT23/dataset/IoT23_graphs/
   graph_base_iot_traces_folder: /user/frosa/anomaly_dataset/IoT_traces/graphs/
   graph_base_iot_id20_folder: /user/frosa/anomaly_dataset/IoTID20/graphs/ 
-  normalize: False
+  normalize: True
   path_min_max_vectors: /user/frosa/anomaly_detection_code/gnn-network-analysis/IDS/datasets/IoT23_min_max/min_max_etdg_graph
   sequence: False
 
@@ -23,11 +23,11 @@ off_line_test: True
 test_epoch: -1
 compute_threshold: False
 
-model: lstmA
+model: gruA
 
 task: anomaly_detection
-wandb_log: False
-project_name: LSTM_NO_SCALE_64
+wandb_log: false
+project_name: GRU_SCALE_64
 save_folder: /user/frosa/anomaly_detection_code/checkpoint_dir
 
 class_weights: [ 0.35, 0.65]

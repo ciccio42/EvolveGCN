@@ -42,12 +42,13 @@ class EGCN(torch.nn.Module):
         for unit in self.GRCU_layers:
             Nodes_list = unit(A_list, Nodes_list, nodes_mask_list)
 
-        out = Nodes_list
+        # out = Nodes_list
         # out = Nodes_list[-1]
         # if self.skipfeats:
         #     # use node_feats.to_dense() if 2hot encoded input
         #     out = torch.cat((out, node_feats), dim=1)
-        return out
+        out_sequence = Nodes_list
+        return out_sequence
 
 
 class GRCU(torch.nn.Module):
@@ -160,9 +161,14 @@ class TopK(torch.nn.Module):
 
     def forward(self, node_embs, mask):
         scores = node_embs.matmul(self.scorer) / self.scorer.norm()
+        if mask.shape[-1] != 1:
+            mask = mask.view(mask.shape[0], 1)
         scores = scores + mask
+        try:
+            vals, topk_indices = scores.view(-1).topk(self.k)
+        except:
+            vals, topk_indices = scores.view(-1).topk(scores.shape[0])
 
-        vals, topk_indices = scores.view(-1).topk(self.k)
         topk_indices = topk_indices[vals > -float("Inf")]
 
         if topk_indices.size(0) < self.k:

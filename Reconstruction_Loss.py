@@ -134,8 +134,8 @@ class ReconstructionLoss(torch.nn.Module):
         else:
             # assert (torch.count_nonzero(torch.isnan(ground_truth_node_struct))
             #         ) == 0, "GT node struct contains nan"
-            # assert (torch.count_nonzero(torch.isnan(reconstructed_node_struct))
-            #         ) == 0, "Reconstructed node struct contains nan"
+            assert (torch.count_nonzero(torch.isnan(reconstructed_node_struct))
+                    ) == 0, "Reconstructed node struct contains nan"
 
             diff_stru = ground_truth_node_struct - reconstructed_node_struct
 

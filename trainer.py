@@ -125,12 +125,12 @@ class TrainerAnomaly():
                 threshold = float(file.read())
 
         print(f"Testing threshold {threshold}")
-        # self.run_test(split_name='validation',
-        #               threshold=threshold)
-        # self.run_test(split_name='iot_traces',
-        #               threshold=threshold)
-        if not self.tasker.data.sequence:
 
+        if not self.tasker.data.sequence:
+            # self.run_test(split_name='validation',
+            #               threshold=threshold)
+            # self.run_test(split_name='iot_traces',
+            #               threshold=threshold)
             # self.run_test(split_name='test_benign',
             #               threshold=threshold)
             # self.run_test(split_name='test_malicious',
@@ -143,10 +143,22 @@ class TrainerAnomaly():
                           threshold=threshold)
 
         else:
+            # self.run_test(split_name='validation',
+            #               threshold=threshold)
+            # self.run_test(split_name='iot_traces',
+            #               threshold=threshold)
             self.run_test(split_name='test_iot23',
                           threshold=threshold)
             self.run_test(split_name='test_iot_id20',
                           threshold=threshold)
+            # self.run_test_sequence(split_name='validation',
+            #                        threshold=threshold)
+            # self.run_test_sequence(split_name='iot_traces',
+            #                        threshold=threshold)
+            # self.run_test_sequence(split_name='test_iot23',
+            #                        threshold=threshold)
+            # self.run_test_sequence(split_name='test_iot_id20',
+            #                        threshold=threshold)
 
     def run_test(self, split_name, threshold):
         tolog = {}
@@ -202,169 +214,112 @@ class TrainerAnomaly():
         if self.args.wandb_log:
             wandb.log(tolog)
 
-    def compute_metrics(self, y_scores, y_labels, threshold):
-        # create y_pred
-        y_pred = []
-        y_true = []
+    def run_test_sequence(self, split_name, threshold):
+        tolog = {}
+        # 3. Test with best threshold
+        print(f"Running test on {split_name}....")
+        if split_name == 'validation':
+            epoch_name = None
+            split = self.splitter.dev
+        elif split_name == 'test_benign':
+            epoch_name = None
+            split = self.splitter.test_benign
+        elif split_name == 'test_malicious':
+            epoch_name = None
+            split = self.splitter.test_malicious
+        elif split_name == 'test_mixed':
+            epoch_name = None
+            split = self.splitter.test_mixed
+        elif split_name == 'iot_traces':
+            epoch_name = None
+            split = self.splitter.test_traces
+        elif split_name == 'iot_id20_benign':
+            epoch_name = None
+            split = self.splitter.test_iotid20_benign
+        elif split_name == 'iot_id20_mixed':
+            epoch_name = None
+            split = self.splitter.test_iotid20_mixed
+        elif split_name == 'test_iot23':
+            epoch_name = None
+            split = self.splitter.test_iot23
+        elif split_name == 'test_iot_id20':
+            epoch_name = None
+            split = self.splitter.test_iotid20
 
-        # number of predictions
-        n_pred = 0.0
+        self.detector.set_training(False)
+        eval_scores, labels = self.run_epoch_sequence(
+            split, -1, epoch_name, grad=False, test=True)
 
-        for b in range(len(y_scores)):
-            for t in range(len(y_scores[b])):
-                # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
-                y_pred.append(y_scores[b][t] > threshold)
-                y_true.append(y_labels[b][t][1])
-                n_pred += y_labels[b][t][1].shape[0]
-
-        tp = 0
-        tn = 0
-        fn = 0
-        fp = 0
-        try:
-            for i in range(len(y_pred)):
-                for n_indx in range(y_pred[i].shape[0]):
-                    if y_pred[i][n_indx] == 1 and y_true[i][n_indx] == 1:
-                        tp += 1
-                    if y_pred[i][n_indx] == 0 and y_true[i][n_indx] == 0:
-                        tn += 1
-                    if y_pred[i][n_indx] == 1 and y_true[i][n_indx] == 0:
-                        fp += 1
-                    if y_pred[i][n_indx] == 0 and y_true[i][n_indx] == 1:
-                        fn += 1
-
-            # print("\nTP:", tp)
-            # print("\nTN:", tn)
-            # print("\nFP:", fp)
-            # print("\nFN:", fn)
-
-            accuracy = (tp + tn) / (tp + tn + fp + fn)
-            precision = tp / (tp + fp)
-            recall = tp / (tp + fn)
-            f_score = 2 * (precision * recall) / (precision + recall)
-        except:
-            precision = 0
-            recall = 0
-            f_score = 0
-
-        return accuracy, precision, recall, f_score, tp, tn, fp, fn
-
-    def find_best_threshold(self):
-        # load scores and labels
-        with open(os.path.join(self.chpt_dir, "threshold", "score_list.pkl"), "rb") as handle:
-            eval_scores = pickle.load(handle)  # B x T x Nodes
-
-        with open(os.path.join(self.chpt_dir, "threshold", "label_list.pkl"), "rb") as handle:
-            labels = pickle.load(handle)
-
-        # 1. Find the max score
-        max_score = self.find_max_score(eval_scores, labels)
-        threshold = max_score/2
-        optimal_threshold, threshold_list, fp_list = self.find_optimal_threshold(
+        # Compute validation metrics
+        accuracy, precision, recall, f_score, tp, tn, fp, fn = self.compute_metrics(
             y_scores=eval_scores,
             y_labels=labels,
             threshold=threshold)
-        self.create_fp_vs_threshold_plot(save_path=self.chpt_dir,
-                                         fp_list=fp_list,
-                                         threshold_list=threshold_list)
+        tolog[f'{split_name}/accuracy'] = accuracy
+        tolog[f'{split_name}/precision'] = precision
+        tolog[f'{split_name}/recall'] = recall
+        tolog[f'{split_name}/f_score'] = f_score
+        tolog[f'{split_name}/tp'] = tp
+        tolog[f'{split_name}/tn'] = tn
+        tolog[f'{split_name}/fp'] = fp
+        tolog[f'{split_name}/fn'] = fn
+        with open(f'{self.chpt_dir}/{split_name}.json', 'w') as fp:
+            json.dump(tolog, fp)
+        if self.args.wandb_log:
+            wandb.log(tolog)
 
-        # save optimal_threshold
-        print("Optimal threshold to use in the next step: ", optimal_threshold)
-        threshold_file_path = os.path.join(
-            self.chpt_dir, "threshold", "optimal_threshold.txt")
-        with open(threshold_file_path, "w") as f:
-            f.write(str(optimal_threshold.item()))
+    def run_epoch_sequence(self, split, epoch, set_name, grad, test=False):
 
-        return optimal_threshold.item()
+        torch.set_grad_enabled(grad)
 
-    def find_max_score(self, y_scores, y_labels):
-        max_score = -np.inf
+        scores_epoch = []
+        labels_epoch = []
+        dataset = split.dataset
+        self.tasker.adj_mat_time_window = 1
+        for capture in dataset.capture_start_end_indx.keys():
+            print(f"Sequence from capture {capture}")
+            for indx in range(dataset.capture_start_end_indx[capture][0][1] - dataset.capture_start_end_indx[capture][0][0] + 1):
+                if indx == 0:
+                    self.detector.initialize_weights()
+                # get current sample
+                s = dataset.__getitem__(
+                    indx+dataset.capture_start_end_indx[capture][0][0])
+                # each split contains a
+                s = self.prepare_sample_anomaly(s, ignore_batch_dim=True)
 
-        for b in range(len(y_scores)):
-            for t in range(len(y_scores[b])):
-                # max_score_for_sample = torch.max(
-                #     y_scores[b][t][y_labels[b][t][0]])
-                max_score_for_sample = torch.max(
-                    y_scores[b][t])
-                if max_score_for_sample > max_score:
-                    max_score = max_score_for_sample
+                with torch.no_grad():
 
-        return max_score
+                    pred_res = self.predict_sequence(s.hist_adj_list_norm,
+                                                     s.hist_ndFeats_list,
+                                                     s.label_sp,
+                                                     s.node_mask_list)
 
-    def create_fp_vs_threshold_plot(self, save_path, fp_list, threshold_list):
-        plt.figure(figsize=(10, 6))
-        plt.plot(threshold_list, fp_list, marker='o',
-                 linestyle='-', color='b')
+                    pred_attribute_list, pred_adj_list = pred_res
 
-        plt.title('False Positive vs Threshold')
-        plt.xlabel('Threshold')
-        plt.ylabel('False Positive')
+                    if isinstance(self.comp_loss, ReconstructionLoss):
 
-        plt.grid(True)
-        plt.savefig(os.path.join(
-            save_path, 'fp_vs_threshold.png'), format='png', dpi=300)
+                        scores_step = []
+                        labels_step = []
 
-    def find_optimal_threshold(self, y_scores, y_labels, threshold):
+                        loss_t, _, _ = self.comp_loss(pred_adj=pred_adj_list,
+                                                      gt_adj=s.hist_adj_list,
+                                                      pred_attri=pred_attribute_list,
+                                                      gt_attri=s.hist_ndFeats_list,
+                                                      node_mask=s.node_mask_list,
+                                                      partial_mat=s.hist_adj_list_partial,
+                                                      test=test)
+                        scores_step.append(loss_t.cpu())
+                        labels_step.append(
+                            [s.label_sp['idx'].cpu(), s.label_sp['vals'].cpu()])
 
-        def find_fp(y_true, y_pred):
-            # Positive is anomaly node
-            # Fp is a normale node (label 0) that is label as anomaly (label 1)
-            fp = 0
-            for s in range(len(y_pred)):
-                true_negative_indx = y_true[s] == 0
-                # sample elements true_negative nodes, predicted as 1
-                fp_pred = y_pred[s][true_negative_indx] == 1
-                fp += torch.count_nonzero(fp_pred)
+                        scores_epoch.extend(scores_step)
+                        labels_epoch.extend(labels_step)
 
-            return fp
+                        del pred_attribute_list, pred_adj_list
+                        gc.collect()
+                        torch.cuda.empty_cache()
 
-        # create y_pred
-        y_pred = []
-        y_true = []
-        threshold_list = []
-        fp_list = []
-        # number of predictions
-        n_pred = 0.0
-        for b in range(len(y_scores)):
-            for t in range(len(y_scores[b])):
-                # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
-                y_pred.append(y_scores[b][t] > threshold)
-                y_true.append(y_labels[b][t][1])
-                n_pred += y_labels[b][t][1].shape[0]
-
-        fp = find_fp(y_true, y_pred)
-        fp_percentage = (fp / n_pred) * 100
-        threshold_list.append(threshold)
-        fp_list.append(fp)
-        final_threshold = copy.deepcopy(threshold)
-        while fp_percentage > 1:
-            if not self.data.normalize:
-                if fp_percentage > 2.0:
-                    final_threshold = copy.deepcopy(final_threshold+1000)
-                elif fp_percentage > 1.0 and fp_percentage < 2.0:
-                    final_threshold = copy.deepcopy(final_threshold+100)
-            else:
-                if fp_percentage > 2.0:
-                    final_threshold = copy.deepcopy(final_threshold+0.01)
-                elif fp_percentage > 1.0 and fp_percentage < 2.0:
-                    final_threshold = copy.deepcopy(final_threshold+0.001)
-            print(f"Threshold {final_threshold}")
-            y_pred = []
-            for b in range(len(y_scores)):
-                for t in range(len(y_scores[b])):
-                    # y_pred.append(
-                    #     y_scores[b][t][y_labels[b][t][0]] > final_threshold)
-                    y_pred.append(y_scores[b][t] > final_threshold)
-            fp = find_fp(y_true, y_pred)
-            print(f"Number of fp: {fp}")
-            fp_percentage = (fp / n_pred) * 100
-            print(f"False positive rate {fp_percentage}")
-            threshold_list.append(final_threshold)
-            fp_list.append(fp)
-            if 0.9 < fp_percentage < 1:
-                break
-        print(f"False-positive {fp_percentage}")
-        return final_threshold, threshold_list, fp_list
+            return scores_epoch, labels_epoch
 
     def run_epoch(self, split, epoch, set_name, grad, test=False):
 
@@ -502,6 +457,9 @@ class TrainerAnomaly():
                              hist_ndFeats_list=hist_ndFeats_list,
                              mask_list=mask_list)
 
+    def predict_sequence(self, hist_adj_list, hist_ndFeats_list, node_indices, mask_list):
+        pass
+
     def optim_step(self, loss):
         tolog = dict()
         self.tr_step += 1
@@ -532,19 +490,19 @@ class TrainerAnomaly():
         # b = list(self.detector.parameters())[-1].clone()
         # print(torch.equal(a.data, b.data))
 
-    def prepare_sample_anomaly(self, sample):
+    def prepare_sample_anomaly(self, sample, ignore_batch_dim=False):
 
         sample = u.Namespace(sample)
 
         for i, adj in enumerate(sample.hist_adj_list):
             adj = u.sparse_prepare_tensor(adj, torch_size=[sample.n_nodes],
-                                          ignore_batch_dim=False)
+                                          ignore_batch_dim=ignore_batch_dim)
             sample.hist_adj_list[i] = adj.to(self.args.device)
 
             adj_norm = u.sparse_prepare_tensor(
                 sample.hist_adj_list_norm[i],
                 torch_size=[sample.n_nodes],
-                ignore_batch_dim=False)
+                ignore_batch_dim=ignore_batch_dim)
             sample.hist_adj_list_norm[i] = adj_norm.to(
                 self.args.device)
 
@@ -552,7 +510,11 @@ class TrainerAnomaly():
             sample.hist_adj_list_partial[i] = adj_partial.to(self.args.device)
 
             # nodes = self.tasker.prepare_node_feats(sample.hist_ndFeats_list[i])
+            assert not np.any(np.isinf(sample.hist_ndFeats_list[i])
+                              ), f"sample.hist_ndFeats_list[{i}] contains inf"
             nodes = torch.FloatTensor(sample.hist_ndFeats_list[i])
+            assert (torch.count_nonzero(torch.isinf(nodes))
+                    ) == 0, "nodes contains inf"
             sample.hist_ndFeats_list[i] = nodes.to(self.args.device)
 
             node_mask = torch.FloatTensor(sample.node_mask_list[i])
@@ -575,3 +537,210 @@ class TrainerAnomaly():
             adj['idx'] = adj['idx'][0]
         adj['vals'] = adj['vals'][0]
         return adj
+
+    def compute_metrics(self, y_scores, y_labels, threshold):
+        # create y_pred
+        y_pred = []
+        y_true = []
+
+        # number of predictions
+        n_pred = 0.0
+
+        for b in range(len(y_scores)):
+            for t in range(len(y_scores[b])):
+                # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+                y_pred.append(y_scores[b][t] > threshold)
+                y_true.append(y_labels[b][t][1])
+                n_pred += y_labels[b][t][1].shape[0]
+
+        tp = 0
+        tn = 0
+        fn = 0
+        fp = 0
+        try:
+            for i in range(len(y_pred)):
+                for n_indx in range(y_pred[i].shape[0]):
+                    if y_pred[i][n_indx] == 1 and y_true[i][n_indx] == 1:
+                        tp += 1
+                    if y_pred[i][n_indx] == 0 and y_true[i][n_indx] == 0:
+                        tn += 1
+                    if y_pred[i][n_indx] == 1 and y_true[i][n_indx] == 0:
+                        fp += 1
+                    if y_pred[i][n_indx] == 0 and y_true[i][n_indx] == 1:
+                        fn += 1
+
+            # print("\nTP:", tp)
+            # print("\nTN:", tn)
+            # print("\nFP:", fp)
+            # print("\nFN:", fn)
+
+            accuracy = (tp + tn) / (tp + tn + fp + fn)
+            precision = tp / (tp + fp)
+            recall = tp / (tp + fn)
+            f_score = 2 * (precision * recall) / (precision + recall)
+        except:
+            precision = 0
+            recall = 0
+            f_score = 0
+
+        return accuracy, precision, recall, f_score, tp, tn, fp, fn
+
+    def find_best_threshold(self):
+        # load scores and labels
+        with open(os.path.join(self.chpt_dir, "threshold", "score_list.pkl"), "rb") as handle:
+            eval_scores = pickle.load(handle)  # B x T x Nodes
+
+        with open(os.path.join(self.chpt_dir, "threshold", "label_list.pkl"), "rb") as handle:
+            labels = pickle.load(handle)
+
+        # 1. Find the max score
+        max_score = self.find_max_score(eval_scores, labels)
+        threshold = max_score/2
+        optimal_threshold, threshold_list, fp_list = self.find_optimal_threshold(
+            y_scores=eval_scores,
+            y_labels=labels,
+            threshold=threshold)
+        self.create_fp_vs_threshold_plot(save_path=self.chpt_dir,
+                                         fp_list=fp_list,
+                                         threshold_list=threshold_list)
+
+        # save optimal_threshold
+        print("Optimal threshold to use in the next step: ", optimal_threshold)
+        threshold_file_path = os.path.join(
+            self.chpt_dir, "threshold", "optimal_threshold.txt")
+        with open(threshold_file_path, "w") as f:
+            f.write(str(optimal_threshold.item()))
+
+        return optimal_threshold.item()
+
+    def find_max_score(self, y_scores, y_labels):
+        max_score = -np.inf
+
+        for b in range(len(y_scores)):
+            for t in range(len(y_scores[b])):
+                # max_score_for_sample = torch.max(
+                #     y_scores[b][t][y_labels[b][t][0]])
+                max_score_for_sample = torch.max(
+                    y_scores[b][t])
+                if max_score_for_sample > max_score:
+                    max_score = max_score_for_sample
+
+        return max_score
+
+    def create_fp_vs_threshold_plot(self, save_path, fp_list, threshold_list):
+        plt.figure(figsize=(10, 6))
+        plt.plot(threshold_list, fp_list, marker='o',
+                 linestyle='-', color='b')
+
+        plt.title('False Positive vs Threshold')
+        plt.xlabel('Threshold')
+        plt.ylabel('False Positive')
+
+        plt.grid(True)
+        plt.savefig(os.path.join(
+            save_path, 'fp_vs_threshold.png'), format='png', dpi=300)
+
+    def find_optimal_threshold(self, y_scores, y_labels, threshold):
+
+        def find_fp(y_true, y_pred):
+            # Positive is anomaly node
+            # Fp is a normale node (label 0) that is label as anomaly (label 1)
+            fp = 0
+            # for s in range(len(y_pred)):
+            #     true_negative_indx = y_true[s] == 0
+            #     # sample elements true_negative nodes, predicted as 1
+            #     fp_pred = y_pred[s][true_negative_indx] == 1
+            #     fp += torch.count_nonzero(fp_pred)
+            for i in range(len(y_pred)):
+                for n_indx in range(y_pred[i].shape[0]):
+                    if y_pred[i][n_indx] == 1 and y_true[i][n_indx] == 0:
+                        fp += 1
+            return fp
+
+        # create y_pred
+        y_pred = []
+        y_true = []
+        threshold_list = []
+        fp_list = []
+        # number of predictions
+        n_pred = 0.0
+        for b in range(len(y_scores)):
+            for t in range(len(y_scores[b])):
+                # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+                y_pred.append(y_scores[b][t] > threshold)
+                y_true.append(y_labels[b][t][1])
+                n_pred += y_labels[b][t][1].shape[0]
+
+        fp = find_fp(y_true, y_pred)
+        fp_percentage = (fp / n_pred) * 100
+        threshold_list.append(threshold)
+        fp_list.append(fp)
+        final_threshold = copy.deepcopy(threshold)
+        break_flag = False
+        while not break_flag:
+            while fp_percentage > 1 and not break_flag:
+                print(f"fp percentage greater than 1")
+                y_pred = []
+                y_true = []
+                n_pred = 0.0
+                final_threshold += (final_threshold * 0.05)
+                for b in range(len(y_scores)):
+                    for t in range(len(y_scores[b])):
+                        # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+                        y_pred.append(y_scores[b][t] > final_threshold)
+                        y_true.append(y_labels[b][t][1])
+                        n_pred += y_labels[b][t][1].shape[0]
+                fp = find_fp(y_true, y_pred)
+                fp_percentage = (fp / n_pred) * 100
+                threshold_list.append(copy.deepcopy(final_threshold))
+                fp_list.append(fp)
+                print(f"Threshold {final_threshold}")
+                print(f"New fp percentage {fp_percentage}")
+                if 0.9 < fp_percentage < 1:
+                    break_flag = True
+
+            while fp_percentage < 1 and not break_flag:
+                print(f"fp percentage less than 1")
+                y_pred = []
+                y_true = []
+                n_pred = 0.0
+                final_threshold -= (final_threshold * 0.05)
+                for b in range(len(y_scores)):
+                    for t in range(len(y_scores[b])):
+                        # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+                        y_pred.append(y_scores[b][t] > final_threshold)
+                        y_true.append(y_labels[b][t][1])
+                        n_pred += y_labels[b][t][1].shape[0]
+                fp = find_fp(y_true, y_pred)
+                fp_percentage = (fp / n_pred) * 100
+                threshold_list.append(copy.deepcopy(final_threshold))
+                fp_list.append(fp)
+                print(f"Threshold {final_threshold}")
+                print(f"New fp percentage {fp_percentage}")
+                if 0.9 < fp_percentage < 1:
+                    break_flag = True
+
+            while fp_percentage > 1.1 and not break_flag:
+                print(f"fp percentage greater than 1.1")
+                y_pred = []
+                y_true = []
+                n_pred = 0.0
+                final_threshold += final_threshold * 0.05
+                for b in range(len(y_scores)):
+                    for t in range(len(y_scores[b])):
+                        # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+                        y_pred.append(y_scores[b][t] > final_threshold)
+                        y_true.append(y_labels[b][t][1])
+                        n_pred += y_labels[b][t][1].shape[0]
+                fp = find_fp(y_true, y_pred)
+                fp_percentage = (fp / n_pred) * 100
+                threshold_list.append(copy.deepcopy(final_threshold))
+                fp_list.append(fp)
+                print(f"Threshold {final_threshold}")
+                print(f"New fp percentage {fp_percentage}")
+                if 0.9 < fp_percentage < 1:
+                    break_flag = True
+
+        print("Final fp percentage:", fp_percentage)
+        print("Final threshold:", final_threshold)
+        return final_threshold, threshold_list, fp_list

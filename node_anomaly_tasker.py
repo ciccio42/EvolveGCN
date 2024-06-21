@@ -174,7 +174,14 @@ class Anomaly_Detection_Tasker():
         if self.data.normalize:
             features = (features-self.data.min_vector) / \
                 (self.data.max_vector-self.data.min_vector)
-            features = np.nan_to_num(features, nan=0.0)
+            features = np.nan_to_num(features, nan=0.0, posinf=0.0)
+            max_feature_index = np.argmax(features)
+            # Convert the flattened index to row and column indices
+            row_index, col_index = np.unravel_index(
+                max_feature_index, features.shape)
+
+            # print(
+            #     f"Max {np.max(features)}; {self.data.min_vector[col_index]}, {self.data.max_vector[col_index]}")
             # assert np.max(
             #     features) <= 1.0, f"max {np.max(features)}: {capture}-{graph_type}-{graph_name}"
             # assert np.count_nonzero(
@@ -184,7 +191,9 @@ class Anomaly_Detection_Tasker():
         new_features = np.zeros((num_nodes, self.feats_per_node))
         old_to_new_id_map = np.array(graph['features_new_old_map'])
         new_features[old_to_new_id_map[:, 1]
-                     ] = features[old_to_new_id_map[:, 0]][:, :self.feats_per_node]
+                     ] = np.array(features[old_to_new_id_map[:, 0]][:, :self.feats_per_node], dtype=np.float32)
+        assert not np.any(np.isinf(new_features)), "new_features contains inf"
+
         return new_features
 
 

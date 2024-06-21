@@ -23,11 +23,11 @@ off_line_test: True
 test_epoch: -1
 compute_threshold: False
 
-model: lstmA
+model: egcn_h
 
 task: anomaly_detection
 wandb_log: False
-project_name: LSTM_NO_SCALE_64
+project_name: EGCN_H_DOMINANT_NO_SCALE_64
 save_folder: /user/frosa/anomaly_detection_code/checkpoint_dir
 
 class_weights: [ 0.35, 0.65]
@@ -55,7 +55,8 @@ num_hist_steps_min: 1
 num_hist_steps_max: 1
 data_loading_params:
   batch_size: 4
-  num_workers: 8
+  num_workers: 16
+
 
 gcn_parameters:
   feats_per_node: 72
