@@ -148,8 +148,9 @@ def create_parser():
         formatter_class=argparse.RawTextHelpFormatter)
     # type=argparse.FileType(
     parser.add_argument(
-        '--config_file', default='experiments/parameters_example.yaml', type=str)
+        '--config_file', default='/user/apaolillo/dynamic_graphs/EvolveGCN/experiments/150k_IoT23_etdg/parameters_egcn_h_anomaly_norm.yaml', type=str)
     #    mode='r'), help='optional, yaml file containing parameters to be used, overrides command #line parameters')
+    #/user/apaolillo/dynamic_graphs/EvolveGCN/experiments/150k_IoT23_etdg/parameters_egcn_h_anomaly_norm.yaml
     parser.add_argument('--debug', action='store_true')
     # parser.add_argument()
     return parser
@@ -177,14 +178,16 @@ def parse_args(parser):
         args.gcn_parameters['feats_per_node'], args.gcn_parameters['feats_per_node_min'], args.gcn_parameters['feats_per_node_max'], type='int')
     args.gcn_parameters['layer_1_feats'] = random_param_value(
         args.gcn_parameters['layer_1_feats'], args.gcn_parameters['layer_1_feats_min'], args.gcn_parameters['layer_1_feats_max'], type='int')
-    if args.gcn_parameters['layer_2_feats_same_as_l1'] or args.gcn_parameters['layer_2_feats_same_as_l1'].lower() == 'true':
+    # or args.gcn_parameters['layer_2_feats_same_as_l1'].lower() == 'true':
+    if args.gcn_parameters['layer_2_feats_same_as_l1']:
         args.gcn_parameters['layer_2_feats'] = args.gcn_parameters['layer_1_feats']
     else:
         args.gcn_parameters['layer_2_feats'] = random_param_value(
             args.gcn_parameters['layer_2_feats'], args.gcn_parameters['layer_1_feats_min'], args.gcn_parameters['layer_1_feats_max'], type='int')
     args.gcn_parameters['lstm_l1_feats'] = random_param_value(
         args.gcn_parameters['lstm_l1_feats'], args.gcn_parameters['lstm_l1_feats_min'], args.gcn_parameters['lstm_l1_feats_max'], type='int')
-    if args.gcn_parameters['lstm_l2_feats_same_as_l1'] or args.gcn_parameters['lstm_l2_feats_same_as_l1'].lower() == 'true':
+    # or args.gcn_parameters['lstm_l2_feats_same_as_l1'].lower() == 'true':
+    if args.gcn_parameters['lstm_l2_feats_same_as_l1']:
         args.gcn_parameters['lstm_l2_feats'] = args.gcn_parameters['lstm_l1_feats']
     else:
         args.gcn_parameters['lstm_l2_feats'] = random_param_value(

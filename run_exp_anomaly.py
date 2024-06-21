@@ -26,7 +26,7 @@ import node_anomaly_tasker as nat
 import models as mls
 import egcn_h
 import egcn_o
-
+import egcn_gat
 
 import splitter as sp
 import Cross_Entropy as ce
@@ -92,14 +92,16 @@ def build_random_hyper_params(args):
         args.gcn_parameters['feats_per_node'], args.gcn_parameters['feats_per_node_min'], args.gcn_parameters['feats_per_node_max'], type='int')
     args.gcn_parameters['layer_1_feats'] = random_param_value(
         args.gcn_parameters['layer_1_feats'], args.gcn_parameters['layer_1_feats_min'], args.gcn_parameters['layer_1_feats_max'], type='int')
-    if args.gcn_parameters['layer_2_feats_same_as_l1'] or args.gcn_parameters['layer_2_feats_same_as_l1'].lower() == 'true':
+    # or args.gcn_parameters['layer_2_feats_same_as_l1'].lower() == 'true':
+    if args.gcn_parameters['layer_2_feats_same_as_l1']:
         args.gcn_parameters['layer_2_feats'] = args.gcn_parameters['layer_1_feats']
     else:
         args.gcn_parameters['layer_2_feats'] = random_param_value(
             args.gcn_parameters['layer_2_feats'], args.gcn_parameters['layer_1_feats_min'], args.gcn_parameters['layer_1_feats_max'], type='int')
     args.gcn_parameters['lstm_l1_feats'] = random_param_value(
         args.gcn_parameters['lstm_l1_feats'], args.gcn_parameters['lstm_l1_feats_min'], args.gcn_parameters['lstm_l1_feats_max'], type='int')
-    if args.gcn_parameters['lstm_l2_feats_same_as_l1'] or args.gcn_parameters['lstm_l2_feats_same_as_l1'].lower() == 'true':
+    # or args.gcn_parameters['lstm_l2_feats_same_as_l1'].lower() == 'true':
+    if args.gcn_parameters['lstm_l2_feats_same_as_l1']:
         args.gcn_parameters['lstm_l2_feats'] = args.gcn_parameters['lstm_l1_feats']
     else:
         args.gcn_parameters['lstm_l2_feats'] = random_param_value(
@@ -124,6 +126,8 @@ def build_dataset(args):
         return ell_temp.Elliptic_Temporal_Dataset(args)
     elif args.data == 'iot23':
         return anomaly.Anomaly_Dataset(args)
+    elif args.data == 'iot_traces':
+        return anomaly.Anomaly_Dataset_traces(args)
     elif args.data == 'uc_irv_mess':
         return ucim.Uc_Irvine_Message_Dataset(args)
     elif args.data == 'dbg':
@@ -155,6 +159,8 @@ def build_tasker(args, dataset):
         return nct.Static_Node_Cls_Tasker(args, dataset)
     elif args.task == 'anomaly_detection':
         return nat.Anomaly_Detection_Tasker(args, dataset)
+    elif args.task == 'anomaly_detection_iot_traces':
+        return nat.Anomaly_Detection_Tasker_IoT_traces(args, dataset)
 
     else:
         raise NotImplementedError('still need to implement the other tasks')
@@ -187,12 +193,16 @@ def build_gcn(args, tasker):
             return egcn_h.EGCN(gcn_args, activation=torch.nn.RReLU(), device=args.device, skipfeats=True)
         elif args.model == 'egcn_o':
             return egcn_o.EGCN(gcn_args, activation=torch.nn.RReLU(), device=args.device)
+        elif args.model == 'simple_gcn':
+            return mls.GCN(gcn_args, activation=torch.nn.RReLU()).to(args.device)
+        elif args.model == 'egcn_gat':
+            return  egcn_gat.EGCN(gcn_args, activation = torch.nn.RReLU(), device = args.device, gat=True)
         else:
             raise NotImplementedError('need to finish modifying the models')
 
 
 def build_classifier(args, tasker):
-    if not isinstance(tasker, nat.Anomaly_Detection_Tasker):
+    if not isinstance(tasker, nat.Anomaly_Detection_Tasker) and not isinstance(tasker, nat.Anomaly_Detection_Tasker_IoT_traces):
         if 'node_cls' == args.task or 'static_node_cls' == args.task:
             mult = 1
         else:
@@ -210,12 +220,54 @@ def build_classifier(args, tasker):
         return mls.Decoder(args)
 
 
+def get_best_model(args, directory_path):
+    """
+    Accesses the specified directory and selects the file with the highest numerical index
+    in the file name. Assumes that the files have a common prefix followed by a numerical index.
+
+    Parameters
+    ----------
+    directory_path (str): The path of the directory containing the model files.
+
+    Returns
+    ----------
+    str: The name of the file with the highest numerical index, or None if the directory is empty or contains no valid files.
+    """
+    # List to store the numerical indices of the files
+    model_indices = []
+    try:
+        # List all files in the directory
+        files = os.listdir(directory_path)
+        # Filter files that start with the prefix "DOMINANT_model_"
+        model_files = [f for f in files if "opt" not in f]
+        # Extract numerical indices from the file names
+        for model_file in model_files:
+            try:
+                index = int(model_file.split(".")[0].split("_")[-1])
+                model_indices.append((model_file, index))
+            except ValueError:
+                # Ignore files that do not have a valid numerical index
+                continue
+        # If there are no valid files, return None
+        if not model_indices:
+            return None
+        # Sort the list of tuples based on the numerical index and select the file with the highest index
+        best_model_file = sorted(
+            model_indices, key=lambda x: x[1], reverse=True)[0][0]
+
+        return os.path.join(directory_path, best_model_file)
+
+    except FileNotFoundError:
+        print(f"The directory {directory_path} does not exist.")
+        return None
+
+
 if __name__ == '__main__':
     parser = u.create_parser()
     args = u.parse_args(parser)
 
     if args.debug:
-        debugpy.listen(('0.0.0.0', 5678))
+        debugpy.listen(('127.0.0.1', 5678))
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
 
@@ -289,10 +341,19 @@ if __name__ == '__main__':
 
     if args.test or args.off_line_test:
         if args.off_line_test:
-            # load best model
-            print("Loading detector ....")
-            gcnn = torch.load(os.path.join(
-                args.save_folder, args.project_name, f"detector_{args.test_epoch}.pt"))
+            if args.test_epoch != -1:
+                # load best model
+                print("Loading detector ....")
+                gcnn = torch.load(os.path.join(
+                    args.save_folder, args.project_name, f"detector_{args.test_epoch}.pt"))
+
+            else:
+                print("Loading best detector ....")
+                path = get_best_model(args=args,
+                                      directory_path=os.path.join(args.save_folder, args.project_name))
+
+                gcnn = torch.load(path)
+
             trainer = tr.TrainerAnomaly(args,
                                         splitter=splitter,
                                         detector=detector,

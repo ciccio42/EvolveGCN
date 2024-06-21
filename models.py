@@ -25,6 +25,7 @@ class Sp_GCN(torch.nn.Module):
                     args.layer_1_feats, args.layer_2_feats))
                 u.reset_param(w_i)
             self.w_list.append(w_i)
+        
 
     def forward(self, A_list, Nodes_list, nodes_mask_list):
         node_feats = Nodes_list[-1]
@@ -88,6 +89,29 @@ class Sp_Skip_NodeFeats_GCN(Sp_GCN):
         return skip_last_l
 
 
+class GCN(Sp_GCN):
+    def __init__(self, args, activation):
+        super().__init__(args, activation)
+        model_parameters = filter(
+            lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print(f"GCN parameter {params}")
+
+    def forward(self, A_list, Nodes_list=None, nodes_mask_list=None):
+        last_l_seq = []
+        for t, Ahat in enumerate(A_list):
+            node_feats = Nodes_list[t].float()
+            last_l = self.activation(Ahat.matmul(
+                node_feats.matmul(self.w_list[0])))
+            for i in range(1, self.num_layers):
+                last_l = self.activation(
+                    Ahat.matmul(last_l.matmul(self.w_list[i])))
+            last_l_seq.append(last_l)
+        last_l_seq = torch.stack(last_l_seq)
+        return last_l_seq
+
+
+
 class Sp_GCN_LSTM_A(Sp_GCN):
     def __init__(self, args, activation):
         super().__init__(args, activation)
@@ -126,20 +150,25 @@ class Sp_GCN_LSTM_A(Sp_GCN):
         last_l_seq = torch.stack(last_l_seq)
         # assert (torch.count_nonzero(torch.isnan(last_l_seq))
         #         ) == 0, f"input lstm contains nan"
-        out, _ = self.rnn(last_l_seq, None)
+        #out, _ = self.rnn(last_l_seq, None)
         # assert (torch.count_nonzero(torch.isnan(out))
         #         ) == 0, f"out lstm contains nan"
-        return out
+        return last_l_seq
 
 
 class Sp_GCN_GRU_A(Sp_GCN_LSTM_A):
     def __init__(self, args, activation):
         super().__init__(args, activation)
+        print("GRU-A")
         self.rnn = nn.GRU(
             input_size=args.layer_2_feats,
             hidden_size=args.lstm_l2_feats,
             num_layers=args.lstm_l2_layers
         )
+        model_parameters = filter(
+            lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print(f"GRU_A parameter {params}")
 
 
 class Sp_GCN_LSTM_B(Sp_GCN):
@@ -184,7 +213,7 @@ class Sp_GCN_LSTM_B(Sp_GCN):
         l2_seq = torch.stack(l2_seq)
 
         out, _ = self.rnn_l2(l2_seq, None)
-        return out[-1]
+        return out
 
 
 class Sp_GCN_GRU_B(Sp_GCN_LSTM_B):
@@ -252,6 +281,7 @@ class Decoder(torch.nn.Module):
             if self.bias is not None:
                 self.bias.data.uniform_(-stdv, stdv)
 
+        
         def forward(self, input, adj):
             support = torch.mm(input, self.weight)
             output = torch.spmm(adj, support)
@@ -259,7 +289,7 @@ class Decoder(torch.nn.Module):
                 return output + self.bias
             else:
                 return output
-
+    
         def __repr__(self):
             return self.__class__.__name__ + ' (' \
                 + str(self.in_features) + ' -> ' \
@@ -274,12 +304,12 @@ class Decoder(torch.nn.Module):
             self.dropout = dropout
 
         def forward(self, x, adj, labels):
-            # assert (torch.count_nonzero(torch.isnan(x))
-            #         ) == 0, "Input Attribute decoder contains nan"
+            assert (torch.count_nonzero(torch.isnan(x))
+                    ) == 0, "Input Attribute decoder contains nan"
             x = F.relu(self.gc1(x, adj))
-            # assert (torch.count_nonzero(torch.isnan(x))
-            #         ) == 0, "GC1 decoder contains nan"
-            x = F.dropout(x, self.dropout, training=self.training)
+            assert (torch.count_nonzero(torch.isnan(x))
+                    ) == 0, "GC1 decoder contains nan"
+            x = F.dropout(x, self.dropout, training=False)  # self.training)
             # assert (torch.count_nonzero(torch.isnan(x))
             #         ) == 0, "Dropout decoder contains nan"
             x = self.gc2(x, adj)[labels == 1, :]
@@ -297,7 +327,8 @@ class Decoder(torch.nn.Module):
         def forward(self, x, adj, labels):
             x = self.gc1(x, adj)
             # x = F.dropout(x, self.dropout, training=self.training)
-            x = F.dropout(x, self.dropout, training=self.training)
+            # training=self.training)
+            x = F.dropout(x, self.dropout, training=False)
             # x = x @ x.T
             # take element of interest
             x = x[labels == 1, :]
@@ -359,6 +390,12 @@ class AnomalyDetector(torch.nn.Module):
         self.training = training
         self.gcn.training = training
         self.head.set_training(training)
+
+    def initialize_weights(self):
+        self.gcn.initialize_weights()
+
+    def forward_single_step(self, hist_adj_list, hist_ndFeats_list, mask_list):
+        pass
 
     def parameters(self):
         return [*self.gcn.parameters(), *self.head.parameters()]
