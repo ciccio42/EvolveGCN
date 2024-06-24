@@ -1,33 +1,36 @@
-data: iot23 
+# Important parameters
+# normalize, train, project_name, wandb_log, compute_threshold, sequence, test_epoch
+
+data: iot23 #HELP: arxiv, bitcoin, aml_sim, dbg, elliptic, elliptic_temporal
 iot23_args:
-  folder: /user/apaolillo/Output_Grafi/split/60k/base/IoT23_dataset_split_etdg
-  folder_iot_traces: /user/apaolillo/Output_Grafi/split_test/60k/base/IoT_traces_dataset_split_etdg
-  folder_iot_id20: /user/apaolillo/Output_Grafi/split_test/60k/base/IoTID20_dataset_split_etdg
+  folder: /user/apaolillo/Output_Grafi/split/90k/base/IoT23_dataset_split_etdg
+  folder_iot_traces: /user/apaolillo/Output_Grafi/split_test/90k/base/IoT_traces_dataset_split_etdg
+  folder_iot_id20: /user/apaolillo/Output_Grafi/split_test/90k/base/IoTID20_dataset_split_etdg
   only_benign: True
   representation: etdg_graph
-  feats_per_node: 72
+  feats_per_node: 53
   one_class: True
   test_sequence: False
-  graph_base_folder: /user/apaolillo/Output_Grafi/60000/IoT23/base/
-  graph_base_iot_traces_folder: /user/apaolillo/Output_Grafi/60000/IoT_traces/base/
-  graph_base_iot_id20_folder: /user/apaolillo/Output_Grafi/60000/IoTID20/base/
+  graph_base_folder: /user/apaolillo/Output_Grafi/90000/IoT23/base/
+  graph_base_iot_traces_folder: /user/apaolillo/Output_Grafi/90000/IoT_traces/base/
+  graph_base_iot_id20_folder: /user/apaolillo/Output_Grafi/90000/IoTID20/base/
   normalize: True
-  path_min_max_vectors: /user/apaolillo/Output_Grafi/min_max_benign/60k/IoT23_min_max_benign/min_max_etdg_graph
-  sequence: False 
+  path_min_max_vectors: /user/apaolillo/Output_Grafi/min_max_benign/90k/IoT23_min_max_benign/min_max_etdg_graph
+  sequence: False
 
 use_cuda: True
 use_logfile: True
-train: True #Se vuoi allenare
+train: True
 test: True
-off_line_test: True #Altrimenti non il trainer
+off_line_test: True
 test_epoch: -1
-compute_threshold: True # Se vuoi salvare il threshold -> in false solo dopo train
+compute_threshold: True
 
-model: egcn_h
+model: egcn_o
 
 task: anomaly_detection
 wandb_log: True
-project_name: EGCN_H_DOMINANT_SCALE_64_60k_IoT23_etdg
+project_name: EGCN_O_DOMINANT_SCALE_64_90k_IoT23_top53
 save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
 
 class_weights: [ 0.35, 0.65]
@@ -59,7 +62,7 @@ data_loading_params:
 
 
 gcn_parameters:
-  feats_per_node: 72
+  feats_per_node: 53
   feats_per_node_min: 30
   feats_per_node_max: 312
   layer_1_feats: 64
@@ -83,7 +86,7 @@ gcn_parameters:
 decoder_parameters:
   sd_nhid: 64 # structure decoder hidden dimension
   sd_dropout: 0.3 # structure decoder hidden dimension
-  ad_nfeat: 72 # 
+  ad_nfeat: 53 # 
   ad_nhid: 64 #
   ad_dropout: 0.3 #
   device_id: 0

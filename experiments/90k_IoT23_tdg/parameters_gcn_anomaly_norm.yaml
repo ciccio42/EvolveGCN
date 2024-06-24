@@ -18,7 +18,7 @@ iot23_args:
 use_cuda: True
 use_logfile: True
 #log_file_name: /user/apaolillo/checkpoint_dir/evolveGCN/EGCN_H_DOMINANT_SCALE_64_90k_IoT23_tdg/logger.log
-train: False #Se vuoi allenare
+train: True #Se vuoi allenare
 test: True
 off_line_test: True #Altrimenti non il trainer
 test_epoch: -1

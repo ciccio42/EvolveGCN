@@ -17,7 +17,7 @@ iot23_args:
 
 use_cuda: True
 use_logfile: True
-train: False #Se vuoi allenare
+train: True #Se vuoi allenare
 test: True
 off_line_test: True #Altrimenti non il trainer
 test_epoch: -1

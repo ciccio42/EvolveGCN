@@ -1,7 +1,7 @@
 #!/bin/bash
 export CUDA_VISIBLE_DEVICES=1
 
-BASE_PATH="/user/apaolillo/dynamic_graphs/EvolveGCN/"
+BASE_PATH="/user/apaolillo/gnn-network-analysis/dynamic_graphs/EvolveGCN"
 
 configurations=(
     
@@ -14,6 +14,11 @@ configurations=(
     "120k_IoT23_tdg"
     "90k_IoT23_tdg"
     "60k_IoT23_tdg"
+
+    #"90k_IoT23_only_etdg"
+    #"90k_IoT23_top23"
+    #"90k_IoT23_top53"
+    ##"90k_IoT23_top63"
 
 )
 

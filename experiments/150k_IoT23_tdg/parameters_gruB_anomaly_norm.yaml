@@ -17,7 +17,7 @@ iot23_args:
 
 use_cuda: True
 use_logfile: True
-train: False
+train: True
 test: True
 off_line_test: True
 test_epoch: -1
@@ -26,7 +26,7 @@ compute_threshold: True
 model: gruB
 
 task: anomaly_detection
-wandb_log: False
+wandb_log: True
 project_name: GRUB_SCALE_64_150k_IoT23_tdg
 save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
 

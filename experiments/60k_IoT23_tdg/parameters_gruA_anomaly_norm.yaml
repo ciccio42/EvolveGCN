@@ -17,7 +17,7 @@ iot23_args:
 
 use_cuda: True
 use_logfile: True
-train: False
+train: True
 test: True
 off_line_test: True
 test_epoch: -1
