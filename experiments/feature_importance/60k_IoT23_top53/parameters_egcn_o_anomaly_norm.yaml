@@ -1,34 +1,33 @@
 data: iot23 
 iot23_args:
-  folder: /user/apaolillo/Output_Grafi/split/90k/base/IoT23_dataset_split_etdg
-  folder_iot_traces: /user/apaolillo/Output_Grafi/split_test/90k/base/IoT_traces_dataset_split_etdg
-  folder_iot_id20: /user/apaolillo/Output_Grafi/split_test/90k/base/IoTID20_dataset_split_etdg
+  folder: /user/apaolillo/Output_Grafi/split/60k/base/IoT23_dataset_split_etdg
+  folder_iot_traces: /user/apaolillo/Output_Grafi/split_test/60k/base/IoT_traces_dataset_split_etdg
+  folder_iot_id20: /user/apaolillo/Output_Grafi/split_test/60k/base/IoTID20_dataset_split_etdg
   only_benign: True
   representation: etdg_graph
   feats_per_node: 53
   one_class: True
   test_sequence: False
-  graph_base_folder: /user/apaolillo/Output_Grafi/90000/IoT23/base/
-  graph_base_iot_traces_folder: /user/apaolillo/Output_Grafi/90000/IoT_traces/base/
-  graph_base_iot_id20_folder: /user/apaolillo/Output_Grafi/90000/IoTID20/base/
+  graph_base_folder: /user/apaolillo/Output_Grafi/feature_importance_dataset/60k/top53/IoT23/base
+  graph_base_iot_traces_folder: /user/apaolillo/Output_Grafi/feature_importance_dataset/60k/top53/IoT_traces/base
+  graph_base_iot_id20_folder: /user/apaolillo/Output_Grafi/feature_importance_dataset/60k/top53/IoTID20/base
   normalize: True
-  path_min_max_vectors: /user/apaolillo/Output_Grafi/min_max_benign/90k/IoT23_min_max_benign/min_max_etdg_graph
+  path_min_max_vectors: /user/apaolillo/Output_Grafi/feature_importance_dataset/60k/top53/IoT23_min_max_benign/min_max_etdg_graph
   sequence: False 
 
 use_cuda: True
 use_logfile: True
-#log_file_name: /user/apaolillo/checkpoint_dir/evolveGCN/EGCN_H_DOMINANT_SCALE_64_90k_IoT23_tdg/logger.log
 train: True #Se vuoi allenare
 test: True
 off_line_test: True #Altrimenti non il trainer
 test_epoch: -1
 compute_threshold: True # Se vuoi salvare il threshold -> in false solo dopo train
 
-model: simple_gcn
+model: egcn_o
 
 task: anomaly_detection
 wandb_log: True
-project_name: GCN_DOMINANT_SCALE_64_90k_IoT23_top53
+project_name: EGCN_O_DOMINANT_SCALE_64_60k_IoT23_top53
 save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
 
 class_weights: [ 0.35, 0.65]

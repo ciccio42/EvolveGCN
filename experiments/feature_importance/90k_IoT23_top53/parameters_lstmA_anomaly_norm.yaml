@@ -1,6 +1,3 @@
-# Important parameters
-# normalize, train, project_name, wandb_log, compute_threshold, sequence, test_epoch
-
 data: iot23 #HELP: arxiv, bitcoin, aml_sim, dbg, elliptic, elliptic_temporal
 iot23_args:
   folder: /user/apaolillo/Output_Grafi/split/90k/base/IoT23_dataset_split_etdg
@@ -11,11 +8,11 @@ iot23_args:
   feats_per_node: 53
   one_class: True
   test_sequence: False
-  graph_base_folder: /user/apaolillo/Output_Grafi/90000/IoT23/base/
-  graph_base_iot_traces_folder: /user/apaolillo/Output_Grafi/90000/IoT_traces/base/
-  graph_base_iot_id20_folder: /user/apaolillo/Output_Grafi/90000/IoTID20/base/
+  graph_base_folder: /user/apaolillo/Output_Grafi/90k_top53/IoT23/base/
+  graph_base_iot_traces_folder: /user/apaolillo/Output_Grafi/90k_top53/IoT_traces/base/
+  graph_base_iot_id20_folder: /user/apaolillo/Output_Grafi/90k_top53/IoTID20/base/
   normalize: True
-  path_min_max_vectors: /user/apaolillo/Output_Grafi/min_max_benign/90k/IoT23_min_max_benign/min_max_etdg_graph
+  path_min_max_vectors: /user/apaolillo/Output_Grafi/90k_top53/min_max_benign/90k/IoT23_min_max_benign/min_max_etdg_graph
   sequence: False
 
 use_cuda: True
@@ -26,11 +23,11 @@ off_line_test: True
 test_epoch: -1
 compute_threshold: True
 
-model: egcn_o
+model: lstmA
 
 task: anomaly_detection
 wandb_log: True
-project_name: EGCN_O_DOMINANT_SCALE_64_90k_IoT23_top53
+project_name: LSTMA_SCALE_64_90k_IoT23_top53
 save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
 
 class_weights: [ 0.35, 0.65]
@@ -59,7 +56,6 @@ num_hist_steps_max: 1
 data_loading_params:
   batch_size: 4
   num_workers: 16
-
 
 gcn_parameters:
   feats_per_node: 53

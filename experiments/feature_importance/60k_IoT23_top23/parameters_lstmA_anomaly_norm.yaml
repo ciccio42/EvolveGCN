@@ -1,33 +1,33 @@
-data: iot23 #HELP: arxiv, bitcoin, aml_sim, dbg, elliptic, elliptic_temporal
+data: iot23 
 iot23_args:
-  folder: /user/apaolillo/Output_Grafi/split/90k/base/IoT23_dataset_split_etdg
-  folder_iot_traces: /user/apaolillo/Output_Grafi/split_test/90k/base/IoT_traces_dataset_split_etdg
-  folder_iot_id20: /user/apaolillo/Output_Grafi/split_test/90k/base/IoTID20_dataset_split_etdg
+  folder: /user/apaolillo/Output_Grafi/split/60k/base/IoT23_dataset_split_etdg
+  folder_iot_traces: /user/apaolillo/Output_Grafi/split_test/60k/base/IoT_traces_dataset_split_etdg
+  folder_iot_id20: /user/apaolillo/Output_Grafi/split_test/60k/base/IoTID20_dataset_split_etdg
   only_benign: True
   representation: etdg_graph
-  feats_per_node: 63
+  feats_per_node: 23
   one_class: True
   test_sequence: False
-  graph_base_folder: /user/apaolillo/Output_Grafi/90k_top63/IoT23/base/
-  graph_base_iot_traces_folder: /user/apaolillo/Output_Grafi/90k_top63/IoT_traces/base/
-  graph_base_iot_id20_folder: /user/apaolillo/Output_Grafi/90k_top63/IoTID20/base/
+  graph_base_folder: /user/apaolillo/Output_Grafi/feature_importance_dataset/60k/only_etdg/IoT23/base
+  graph_base_iot_traces_folder: /user/apaolillo/Output_Grafi/feature_importance_dataset/60k/top23/IoT_traces/base
+  graph_base_iot_id20_folder: /user/apaolillo/Output_Grafi/feature_importance_dataset/60k/top23/IoTID20/base
   normalize: True
-  path_min_max_vectors: /user/apaolillo/Output_Grafi/90k_top63/min_max_benign/90k/IoT23_min_max_benign/min_max_etdg_graph
-  sequence: False
+  path_min_max_vectors: /user/apaolillo/Output_Grafi/feature_importance_dataset/60k/top23/IoT23_min_max_benign/min_max_etdg_graph
+  sequence: False 
 
 use_cuda: True
 use_logfile: True
-train: True
+train: True #Se vuoi allenare
 test: True
-off_line_test: True
+off_line_test: True #Altrimenti non il trainer
 test_epoch: -1
-compute_threshold: True
+compute_threshold: True # Se vuoi salvare il threshold -> in false solo dopo train
 
-model: gruA
+model: lstmA
 
 task: anomaly_detection
 wandb_log: True
-project_name: GRUA_SCALE_64_90k_IoT23_top63
+project_name: LSTMA_SCALE_64_60k_IoT23_top23
 save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
 
 class_weights: [ 0.35, 0.65]
@@ -58,7 +58,7 @@ data_loading_params:
   num_workers: 16
 
 gcn_parameters:
-  feats_per_node: 63
+  feats_per_node: 23
   feats_per_node_min: 30
   feats_per_node_max: 312
   layer_1_feats: 64
@@ -82,7 +82,7 @@ gcn_parameters:
 decoder_parameters:
   sd_nhid: 64 # structure decoder hidden dimension
   sd_dropout: 0.3 # structure decoder hidden dimension
-  ad_nfeat: 63 # 
+  ad_nfeat: 23 # 
   ad_nhid: 64 #
   ad_dropout: 0.3 #
   device_id: 0
