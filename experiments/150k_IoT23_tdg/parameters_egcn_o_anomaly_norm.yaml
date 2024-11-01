@@ -20,7 +20,7 @@ iot23_args:
 
 use_cuda: True
 use_logfile: True
-train: True
+train: false
 test: True
 off_line_test: True
 test_epoch: -1
@@ -29,9 +29,9 @@ compute_threshold: True
 model: egcn_o
 
 task: anomaly_detection
-wandb_log: True
+wandb_log: false
 project_name: EGCN_O_DOMINANT_SCALE_64_150k_IoT23_tdg
-save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
+save_folder: /user/apaolillo/checkpoint_dir/evolveGCN_debug
 
 class_weights: [ 0.35, 0.65]
 use_2_hot_node_feats: False

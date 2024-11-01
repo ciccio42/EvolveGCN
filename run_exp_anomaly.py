@@ -296,6 +296,7 @@ if __name__ == '__main__':
         seed = 123+rank  # int(time.time())+rank
     else:
         seed = args.seed  # +rank
+    print(f"Seed {seed}")
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)

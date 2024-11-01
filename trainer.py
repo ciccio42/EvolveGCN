@@ -39,14 +39,9 @@ class TrainerAnomaly():
         #self.logger = logger.Logger(args, self.num_classes)
         if self.args.wandb_log:
             # init wandb_log
-            wandb.login(key="60c270ab09dba77a74cd9ad8332df95f24843412")
             run = wandb.init(project=self.args.project_name,
                              name=self.args.project_name,
                              sync_tensorboard=False)
-
-
-            
-
         self.init_optimizers(args)
 
     def init_optimizers(self, args):
@@ -220,7 +215,7 @@ class TrainerAnomaly():
         tolog[f'{split_name}/tn'] = tn
         tolog[f'{split_name}/fp'] = fp
         tolog[f'{split_name}/fn'] = fn
-        with open(f'{self.chpt_dir}/{split_name}.json', 'w') as fp:
+        with open(f'{self.chpt_dir}/{split_name}_{threshold}.json', 'w') as fp:
             json.dump(tolog, fp)
         if self.args.wandb_log:
             wandb.log(tolog)
