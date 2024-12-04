@@ -95,7 +95,7 @@ class TrainerAnomaly():
                               str(e)+' - Early stop.')
                         break
 
-    def test_anomaly(self, compute_thr=True):
+    def test_anomaly(self, compute_thr=True, compute_metrics_flag=False):
         tolog = {}
         if compute_thr:
             print(f"Computing threshold...")
@@ -127,19 +127,19 @@ class TrainerAnomaly():
         print(f"Testing threshold {threshold}")
 
         if not self.tasker.data.sequence:
-            # self.run_test(split_name='validation',
-            #               threshold=threshold)
-            # self.run_test(split_name='iot_traces',
-            #               threshold=threshold)
-            # self.run_test(split_name='test_benign',
-            #               threshold=threshold)
-            # self.run_test(split_name='test_malicious',
-            #               threshold=threshold)
-            # self.run_test(split_name='iot_id20_benign',
-            #               threshold=threshold)
-            # self.run_test(split_name='iot_id20_mixed',
-            #               threshold=threshold)
+            self.run_test(split_name='validation',
+                          threshold=threshold)
+            self.run_test(split_name='iot_traces',
+                          threshold=threshold)
+            self.run_test(split_name='test_benign',
+                          threshold=threshold)
+            self.run_test(split_name='test_malicious',
+                          threshold=threshold)
             self.run_test(split_name='test_mixed',
+                          threshold=threshold)
+            self.run_test(split_name='iot_id20_benign',
+                          threshold=threshold)
+            self.run_test(split_name='iot_id20_mixed',
                           threshold=threshold)
 
         else:
@@ -160,7 +160,7 @@ class TrainerAnomaly():
             # self.run_test_sequence(split_name='test_iot_id20',
             #                        threshold=threshold)
 
-    def run_test(self, split_name, threshold):
+    def run_test(self, split_name, threshold, compute_metrics_flag=False):
         tolog = {}
         # 3. Test with best threshold
         print(f"Running test on {split_name}....")
@@ -193,27 +193,35 @@ class TrainerAnomaly():
             split = self.splitter.test_iotid20
 
         self.detector.set_training(False)
-        eval_scores, labels = self.run_epoch(
+        eval_scores, labels, inference_time = self.run_epoch(
             split, -1, epoch_name, grad=False, test=True)
 
         # Compute validation metrics
-        accuracy, precision, recall, f_score, tp, tn, fp, fn = self.compute_metrics(
-            y_scores=eval_scores,
-            y_labels=labels,
-            threshold=threshold)
-        tolog[f'{split_name}/accuracy'] = accuracy
-        tolog[f'{split_name}/precision'] = precision
-        tolog[f'{split_name}/recall'] = recall
-        tolog[f'{split_name}/f_score'] = f_score
-        tolog[f'{split_name}/tp'] = tp
-        tolog[f'{split_name}/tn'] = tn
-        tolog[f'{split_name}/fp'] = fp
-        tolog[f'{split_name}/fn'] = fn
-        with open(f'{self.chpt_dir}/{split_name}.json', 'w') as fp:
-            json.dump(tolog, fp)
-        if self.args.wandb_log:
-            wandb.log(tolog)
-
+        if compute_metrics_flag:
+            accuracy, precision, recall, f_score, tp, tn, fp, fn = self.compute_metrics(
+                y_scores=eval_scores,
+                y_labels=labels,
+                threshold=threshold)
+            tolog[f'{split_name}/accuracy'] = accuracy
+            tolog[f'{split_name}/precision'] = precision
+            tolog[f'{split_name}/recall'] = recall
+            tolog[f'{split_name}/f_score'] = f_score
+            tolog[f'{split_name}/tp'] = tp
+            tolog[f'{split_name}/tn'] = tn
+            tolog[f'{split_name}/fp'] = fp
+            tolog[f'{split_name}/fn'] = fn
+            with open(f'{self.chpt_dir}/{split_name}.json', 'w') as fp:
+                json.dump(tolog, fp)
+            if self.args.wandb_log:
+                wandb.log(tolog)
+        else:
+            tolog[f'{split_name}/scores'] = eval_scores
+            tolog[f'{split_name}/labels'] = labels
+            tolog[f'{split_name}/threshold'] = threshold
+            tolog[f'{split_name}/inference_time'] = inference_time
+            with open(f'{self.chpt_dir}/prediction_{split_name}.json', 'w') as fp:
+                json.dump(tolog, fp)
+            
     def run_test_sequence(self, split_name, threshold):
         tolog = {}
         # 3. Test with best threshold
@@ -330,6 +338,7 @@ class TrainerAnomaly():
         stru_error_epoch = 0.0
         scores_epoch = []
         labels_epoch = []
+        inf_time_epoch = []
         for indx, s_list in enumerate(tqdm(split)):
             B = len(s_list)
 
@@ -353,7 +362,7 @@ class TrainerAnomaly():
                                                 s.label_sp,
                                                 s.node_mask_list)
 
-                pred_attribute_list, pred_adj_list = pred_res
+                pred_attribute_list, pred_adj_list, inf_time = pred_res
                 if isinstance(self.comp_loss, ReconstructionLoss) and epoch != -1:
                     # pred_adj, gt_adj, pred_attri, gt_attri
                     loss_node = torch.zeros(
@@ -394,7 +403,7 @@ class TrainerAnomaly():
                 else:
                     scores_step = []
                     labels_step = []
-
+                    inf_time_step = []
                     for t in range(len(pred_adj_list)):
                         loss_t, _, _ = self.comp_loss(pred_adj=pred_adj_list[t],
                                                       gt_adj=s.hist_adj_list[t],
@@ -403,13 +412,16 @@ class TrainerAnomaly():
                                                       node_mask=s.node_mask_list[t],
                                                       partial_mat=s.hist_adj_list_partial[t],
                                                       test=test)
-                        scores_step.append(loss_t.cpu())
-                        labels_step.append(
-                            [s.label_sp[t]['idx'].cpu(), s.label_sp[t]['vals'].cpu()])
-
-                    scores_epoch.append(scores_step)
-                    labels_epoch.append(labels_step)
-
+                        scores_step.extend(list(loss_t.cpu().detach().numpy().astype(np.float64)))
+                        inf_time_step.extend([inf_time[t]])
+                        # labels_step.append(
+                        #     [s.label_sp[t]['idx'].cpu().detach().numpy(), 
+                        #      s.label_sp[t]['vals'].cpu().detach().numpy()])
+                        labels_step.extend(list(s.label_sp[t]['vals'].cpu().detach().numpy().astype(np.float64)))
+                    
+                    scores_epoch.extend(scores_step)
+                    labels_epoch.extend(labels_step)
+                    inf_time_epoch.extend(inf_time_step)
                     del pred_attribute_list, pred_adj_list
                     gc.collect()
                     torch.cuda.empty_cache()
@@ -450,7 +462,7 @@ class TrainerAnomaly():
         if epoch != -1:
             return loss_epoch/(indx+1), attr_error_epoch/(indx+1), stru_error_epoch/(indx+1)
         else:
-            return scores_epoch, labels_epoch
+            return scores_epoch, labels_epoch, inf_time_epoch
 
     def predict(self, hist_adj_list, hist_ndFeats_list, node_indices, mask_list):
         return self.detector(hist_adj_list=hist_adj_list,

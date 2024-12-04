@@ -6,7 +6,7 @@ from torch.nn import functional as F
 import torch.nn as nn
 import math
 import numpy as np
-
+import time
 
 class Sp_GCN(torch.nn.Module):
     def __init__(self, args, activation):
@@ -383,12 +383,15 @@ class AnomalyDetector(torch.nn.Module):
         # run decoder inference
         pred_attribute_list = []
         pred_adj_list = []
+        inf_time_list = []
         for t, nodes_e in enumerate(nodes_embs):
             # adj_mat, feature_attribute
+            start = time.time()
             pred_attribute_mat, pred_adj_mat = self.head(adj_mat=hist_adj_list[t],
                                                          feature_attribute=nodes_e,
                                                          labels=mask_list[t])
             pred_attribute_list.append(pred_attribute_mat)
             pred_adj_list.append(pred_adj_mat)
-
-        return pred_attribute_list, pred_adj_list
+            end = time.time()
+            inf_time_list.append(end - start)
+        return pred_attribute_list, pred_adj_list, inf_time_list
