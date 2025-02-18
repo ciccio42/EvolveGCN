@@ -148,8 +148,9 @@ def create_parser():
         formatter_class=argparse.RawTextHelpFormatter)
     # type=argparse.FileType(
     parser.add_argument(
-        '--config_file', default='experiments/parameters_example.yaml', type=str)
+        '--config_file', default='/user/apaolillo/dynamic_graphs/EvolveGCN/experiments/150k_IoT23_etdg/parameters_egcn_h_anomaly_norm.yaml', type=str)
     #    mode='r'), help='optional, yaml file containing parameters to be used, overrides command #line parameters')
+    #/user/apaolillo/dynamic_graphs/EvolveGCN/experiments/150k_IoT23_etdg/parameters_egcn_h_anomaly_norm.yaml
     parser.add_argument('--debug', action='store_true')
     # parser.add_argument()
     return parser

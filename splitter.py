@@ -107,58 +107,67 @@ class splitter():
                 train = AnomalyDataset(
                     tasker=tasker,
                     path=tasker.data.dataset_path,
-                    split='train')
+                    split='train',
+                    representation=tasker.data.representation)
                 print(f"Train len {len(train)}")
                 dev = AnomalyDataset(tasker=tasker,
                                      path=tasker.data.dataset_path,
-                                     split='val')
+                                     split='val',
+                                     representation=tasker.data.representation)
                 print(f"Val len {len(dev)}")
 
                 if not tasker.data.sequence:
                     test_benign = AnomalyDataset(tasker=tasker,
                                                  path=tasker.data.dataset_path,
-                                                 split='test_benign')
+                                                 split='test_benign',
+                                                 representation=tasker.data.representation)
                     print(f"test_benign len {len(test_benign)}")
                     test_mixed = AnomalyDataset(tasker=tasker,
                                                 path=tasker.data.dataset_path,
-                                                split='test_mixed')
+                                                split='test_mixed',
+                                                representation=tasker.data.representation)
                     print(f"test_mixed len {len(test_mixed)}")
                     test_malicious = AnomalyDataset(tasker=tasker,
                                                     path=tasker.data.dataset_path,
-                                                    split='test_malicious')
+                                                    split='test_malicious',
+                                                    representation=tasker.data.representation)
                     print(f"test_malicious len {len(test_malicious)}")
                 else:
                     test_iot23 = AnomalyDataset(tasker=tasker,
                                                 path=tasker.data.dataset_path,
-                                                split="test_iot23")
+                                                split="test_iot23",
+                                                representation=tasker.data.representation)
                     print(f"test_iot23 len {len(test_iot23)}")
 
                 test_traces = AnomalyDataset(tasker=tasker,
                                              path=tasker.data.iot_traces_path,
-                                             split='IoT_traces')
+                                             split='IoT_traces',
+                                             representation=tasker.data.representation)
                 print(f"test_traces len {len(test_traces)}")
 
                 if not tasker.data.sequence:
 
                     test_iotid20_benign = AnomalyDataset(tasker=tasker,
                                                          path=tasker.data.iot_id20_path,
-                                                         split='IoTID20_benign')
+                                                         split='IoTID20_benign',
+                                                         representation=tasker.data.representation)
                     print(f"test_iotid20 len {len(test_iotid20_benign)}")
                     test_iotid20_mixed = AnomalyDataset(tasker=tasker,
                                                         path=tasker.data.iot_id20_path,
-                                                        split='IoTID20_mixed')
+                                                        split='IoTID20_mixed',
+                                                        representation=tasker.data.representation)
                     print(f"test_iotid20 len {len(test_iotid20_mixed)}")
                 else:
                     test_iotid20 = AnomalyDataset(tasker=tasker,
                                                   path=tasker.data.iot_id20_path,
-                                                  split="IoTID20")
+                                                  split="IoTID20",
+                                                  representation=tasker.data.representation)
                     print(f"test_iotid20 len {len(test_iotid20)}")
 
                 train = DataLoader(
                     train, shuffle=True, num_workers=args.data_loading_params['num_workers'], batch_size=args.data_loading_params['batch_size'], collate_fn=collate_func)
                 dev = DataLoader(
                     dev, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
-
                 if not tasker.data.sequence:
                     test_benign = DataLoader(
                         test_benign, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
@@ -181,7 +190,82 @@ class splitter():
                 else:
                     test_iotid20 = DataLoader(
                         test_iotid20, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
+            elif isinstance(tasker, nat.Anomaly_Detection_Tasker_IoT_traces):
+                # train, dev, test = self.anomaly_split(tasker, args)
+                train = AnomalyDataset(
+                    tasker=tasker,
+                    path=tasker.data.dataset_path,
+                    split='train')
+                print(f"Train len {len(train)}")
+                dev = AnomalyDataset(tasker=tasker,
+                                     path=tasker.data.dataset_path,
+                                     split='val')
+                print(f"Val len {len(dev)}")
 
+                if not tasker.data.sequence:
+                    test_benign = AnomalyDataset(tasker=tasker,
+                                                 path=tasker.data.iot23_path,
+                                                 split='test_iot23_benign')
+                    print(f"test_benign len {len(test_benign)}")
+                    
+                    
+                    #test_iot23_benign = AnomalyDataset(tasker=tasker,
+                    #                                     path=tasker.data.iot23_path,
+                    #                                     split='test_benign')
+                    #print(f"test_iot23 benign len {len(test_iot23_benign)}")
+                    test_iot23_mixed = AnomalyDataset(tasker=tasker,
+                                                        path=tasker.data.iot23_path,
+                                                        split='test_mixed')
+                    print(f"test_iot23 mix len {len(test_iot23_mixed)}")
+                    
+                    test_iot23_malicious = AnomalyDataset(tasker=tasker,
+                                                        path=tasker.data.iot23_path,
+                                                        split='test_malicious')
+                    print(f"test_iot23 mal len {len(test_iot23_malicious)}")
+                    
+                    
+                    test_iotid20_benign = AnomalyDataset(tasker=tasker,
+                                                         path=tasker.data.iot_id20_path,
+                                                         split='IoTID20_benign')
+                    print(f"test_iotid20 benign len {len(test_iotid20_benign)}")
+                    test_iotid20_mixed = AnomalyDataset(tasker=tasker,
+                                                        path=tasker.data.iot_id20_path,
+                                                        split='IoTID20_mixed')
+                    print(f"test_iotid20 mixed len {len(test_iotid20_mixed)}")
+                    
+                    train = DataLoader(
+                    train, shuffle=True, num_workers=args.data_loading_params['num_workers'], batch_size=args.data_loading_params['batch_size'], collate_fn=collate_func)
+                    dev = DataLoader(
+                    dev, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
+                    
+                    test_benign = DataLoader(
+                        test_benign, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
+                    
+                    test_mixed = DataLoader(
+                        test_iot23_mixed, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
+                    test_malicious = DataLoader(
+                        test_iot23_malicious, shuffle=False,  num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
+                    
+                    test_iotid20_benign = DataLoader(
+                        test_iotid20_benign, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
+                    test_iotid20_mixed = DataLoader(
+                        test_iotid20_mixed, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
+
+                    
+                self.tasker = tasker
+                self.train = train
+                self.dev = dev
+                if not self.tasker.data.sequence:
+                    self.test_benign = test_benign
+                    
+                    #self.test_iot23_benign = test_iot23_benign
+                    self.test_mixed = test_iot23_mixed
+                    self.test_malicious = test_iot23_malicious
+                
+                    self.test_iotid20_benign = test_iotid20_benign
+                    self.test_iotid20_mixed = test_iotid20_mixed
+                return
+                
             self.tasker = tasker
             self.train = train
             self.dev = dev
@@ -270,7 +354,7 @@ class AnomalyDataset(Dataset):
     def get_number(self, path):
         return int(path.split('/')[-1].split('.')[0].split('_')[-1])
 
-    def __init__(self, tasker: nat.Anomaly_Detection_Tasker, path: str = None, split: str = 'train', representation: str = 'tdg_graph'):
+    def __init__(self, tasker: nat.Anomaly_Detection_Tasker, path: str = None, split: str = 'train', representation: str = 'etdg_graph'):
         self.data_dict = None
         self.total_number_graphs = 0
         self.number_of_captures = 0
@@ -279,6 +363,7 @@ class AnomalyDataset(Dataset):
         self.tasker = tasker
         self.representation = representation
         self.mode = split
+
         if split == "train":
             self.data_dict_path = os.path.join(path, "train.json")
         elif split == "val":
@@ -302,11 +387,15 @@ class AnomalyDataset(Dataset):
         elif split == "IoTID20":
             self.data_dict_path = [os.path.join(path, "test_benign.json"),
                                    os.path.join(path, "test_mixed.json")]
+            
+        elif split == "test_iot23_benign":
+            self.data_dict_path = os.path.join(path, "test_benign.json")
 
         if not self.tasker.data.sequence or not isinstance(self.data_dict_path, list):
             with open(self.data_dict_path) as data_file:
                 self.data_dict = json.load(data_file)
 
+                """
                 if split == 'test_mixed' or split == "train" or split == "val":
                     self.data_dict.pop('CTU-IoT-Malware-Capture-9-1', None)
                     self.data_dict.pop('CTU-IoT-Malware-Capture-1-1', None)
@@ -321,7 +410,7 @@ class AnomalyDataset(Dataset):
                     # self.data_dict.pop('CTU-Honeypot-Capture-4-1', None)
                     # self.data_dict.pop('CTU-Honeypot-Capture-7-1', None)
                     # self.data_dict.pop('CTU-Honeypot-Capture-5-1', None)
-
+                """
             self.number_of_captures = len(list(self.data_dict.keys()))
 
             # create a map between graph path and index
@@ -330,7 +419,7 @@ class AnomalyDataset(Dataset):
             for capture in self.data_dict.keys():
                 # if "48-1" not in capture and "9-1" not in capture:
                 # if "Honeypot" in capture:
-                # print(f"Loading capture {capture}")
+                #print(f"Loading capture {capture}")
                 self.capture_start_end_indx[capture] = OrderedDict()
                 graph_cnt = 0
                 for sequence_indx, sequence in enumerate(self.data_dict[capture]):
@@ -356,10 +445,6 @@ class AnomalyDataset(Dataset):
                 with open(partition) as data_file:
                     self.data_dict_partition = json.load(data_file)
                 # if partition_name == 'test_mixed':
-                print("Removing samples")
-                self.data_dict.pop('CTU-IoT-Malware-Capture-9-1', None)
-                self.data_dict.pop('CTU-IoT-Malware-Capture-1-1', None)
-                self.data_dict.pop('CTU-IoT-Malware-Capture-48-1', None)
                 # self.data_dict.pop('CTU-IoT-Malware-Capture-3-1', None)
                 for capture in self.data_dict_partition:
                     partition_to_graph[capture] = OrderedDict()

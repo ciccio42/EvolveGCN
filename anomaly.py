@@ -74,5 +74,39 @@ class Anomaly_Dataset():
                             '/')[-1]].append(graph_file)
 
 
+class Anomaly_Dataset_traces():
+
+    def __init__(self, args):
+        args.iot_traces_args = u.Namespace(args.iot_traces_args)
+        self.dataset_path = args.iot_traces_args.folder
+        self.iot23_path = args.iot_traces_args.folder_iot23
+        self.iot_id20_path = args.iot_traces_args.folder_iot_id20
+
+        self.only_benign = args.iot_traces_args.only_benign
+        self.representation = args.iot_traces_args.representation
+        self.feats_per_node = args.iot_traces_args.feats_per_node
+
+        self.graph_base_folder = args.iot_traces_args.graph_base_folder
+        self.graph_base_iot23_folder = args.iot_traces_args.graph_base_iot23_folder
+        self.graph_base_iot_id20_folder = args.iot_traces_args.graph_base_iot_id20_folder
+
+        self.normalize = args.iot_traces_args.normalize
+        self.sequence = args.iot_traces_args.sequence
+
+        if self.normalize:
+            # open min vector
+            print("Loading min vector")
+            with load(f'{args.iot_traces_args.path_min_max_vectors}/min.npz') as data:
+                self.min_vector = data['arr_0']
+            print("Loading max vector")
+            with load(f'{args.iot_traces_args.path_min_max_vectors}/max.npz') as data:
+                self.max_vector = data['arr_0']
+
+        if args.iot_traces_args.one_class:
+            self.num_classes = 1
+        else:
+            self.num_classes = 2
+
+
 if __name__ == '__main__':
     pass

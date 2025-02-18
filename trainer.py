@@ -36,13 +36,12 @@ class TrainerAnomaly():
         self.data = dataset
         self.num_classes = num_classes
 
-        # self.logger = logger.Logger(args, self.num_classes)
+        #self.logger = logger.Logger(args, self.num_classes)
         if self.args.wandb_log:
             # init wandb_log
             run = wandb.init(project=self.args.project_name,
                              name=self.args.project_name,
                              sync_tensorboard=False)
-
         self.init_optimizers(args)
 
     def init_optimizers(self, args):
@@ -56,10 +55,12 @@ class TrainerAnomaly():
         epochs_without_impr = 0
 
         tolog = {}
+        attributes = dir(self.splitter.train)
         for e in tqdm(range(self.args.num_epochs)):
             loss_epoch, attr_error_epoch, stru_error_epoch = self.run_epoch(
                 self.splitter.train, e, 'TRAIN', grad=True)
-
+            #self.logger.log_epoch_done()
+            
             tolog['train_epoch'] = e
             tolog[f'train_epoch/anomaly_score'] = loss_epoch
             tolog[f'train_epoch/attribute_error'] = attr_error_epoch
@@ -68,9 +69,11 @@ class TrainerAnomaly():
                 wandb.log(tolog)
 
             if len(self.splitter.dev) > 0 and e > self.args.eval_after_epochs:
+                #self.logger.log_epoch_start(e, 'VALID')
                 loss_epoch, attr_error_epoch, stru_error_epoch = self.run_epoch(
                     self.splitter.dev, e, 'VALID', grad=False)
 
+                #self.logger.log_epoch_done()
                 tolog['eval_epoch'] = e
                 tolog[f'val_epoch/anomaly_score'] = loss_epoch
                 tolog[f'val_epoch/attribute_error'] = attr_error_epoch
@@ -128,13 +131,17 @@ class TrainerAnomaly():
 
         if not self.tasker.data.sequence:
             self.run_test(split_name='validation',
-                          threshold=threshold)
+                           threshold=threshold)
             self.run_test(split_name='iot_traces',
-                          threshold=threshold)
+                           threshold=threshold)
             self.run_test(split_name='test_benign',
-                          threshold=threshold)
+                           threshold=threshold)
             self.run_test(split_name='test_malicious',
-                          threshold=threshold)
+                           threshold=threshold)
+            self.run_test(split_name='iot_id20_benign',
+                           threshold=threshold)
+            self.run_test(split_name='iot_id20_mixed',
+                           threshold=threshold)
             self.run_test(split_name='test_mixed',
                           threshold=threshold)
             self.run_test(split_name='iot_id20_benign',
@@ -143,10 +150,10 @@ class TrainerAnomaly():
                           threshold=threshold)
 
         else:
-            # self.run_test(split_name='validation',
-            #               threshold=threshold)
-            # self.run_test(split_name='iot_traces',
-            #               threshold=threshold)
+            self.run_test(split_name='validation',
+                           threshold=threshold)
+            self.run_test(split_name='iot_traces',
+                           threshold=threshold)
             self.run_test(split_name='test_iot23',
                           threshold=threshold)
             self.run_test(split_name='test_iot_id20',
@@ -253,6 +260,9 @@ class TrainerAnomaly():
         elif split_name == 'test_iot_id20':
             epoch_name = None
             split = self.splitter.test_iotid20
+        elif split_name == 'test_iot23_benign':
+            epoch_name = None
+            split = self.splitter.test_benign
 
         self.detector.set_training(False)
         eval_scores, labels = self.run_epoch_sequence(
@@ -271,7 +281,7 @@ class TrainerAnomaly():
         tolog[f'{split_name}/tn'] = tn
         tolog[f'{split_name}/fp'] = fp
         tolog[f'{split_name}/fn'] = fn
-        with open(f'{self.chpt_dir}/{split_name}.json', 'w') as fp:
+        with open(f'{self.chpt_dir}/{split_name}_{threshold}.json', 'w') as fp:
             json.dump(tolog, fp)
         if self.args.wandb_log:
             wandb.log(tolog)
@@ -347,6 +357,7 @@ class TrainerAnomaly():
             attr_error_batch = 0.0
             stru_error_batch = 0.0
             for b_indx in range(B):
+                #self.logger.log_epoch_start(epoch, b_indx, set_name)
                 # each split contains a
                 s = self.prepare_sample_anomaly(s_list[b_indx])
 
@@ -383,6 +394,7 @@ class TrainerAnomaly():
                             node_mask=s.node_mask_list[t],
                             partial_mat=s.hist_adj_list_partial[t],
                             test=test)
+                        
 
                         full_node_mask_list[s.node_mask_list[t] == 1] += 1
                         loss_node[s.node_mask_list[t] == 1] += loss_t
@@ -425,7 +437,7 @@ class TrainerAnomaly():
                     del pred_attribute_list, pred_adj_list
                     gc.collect()
                     torch.cuda.empty_cache()
-
+            
             # average loss batch
             loss_batch = loss_batch/B
             # print(loss_batch)
@@ -520,7 +532,6 @@ class TrainerAnomaly():
 
             adj_partial = torch.FloatTensor(sample.hist_adj_list_partial[i])
             sample.hist_adj_list_partial[i] = adj_partial.to(self.args.device)
-
             # nodes = self.tasker.prepare_node_feats(sample.hist_ndFeats_list[i])
             assert not np.any(np.isinf(sample.hist_ndFeats_list[i])
                               ), f"sample.hist_ndFeats_list[{i}] contains inf"
@@ -541,7 +552,6 @@ class TrainerAnomaly():
             label_sp['vals'] = label_sp['vals'].type(
                 torch.long).to(self.args.device)
             sample.label_sp[i] = label_sp
-
         return sample
 
     def ignore_batch_dim(self, adj):

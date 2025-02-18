@@ -26,7 +26,7 @@ import node_anomaly_tasker as nat
 import models as mls
 import egcn_h
 import egcn_o
-
+import egcn_gat
 
 import splitter as sp
 import Cross_Entropy as ce
@@ -126,6 +126,8 @@ def build_dataset(args):
         return ell_temp.Elliptic_Temporal_Dataset(args)
     elif args.data == 'iot23':
         return anomaly.Anomaly_Dataset(args)
+    elif args.data == 'iot_traces':
+        return anomaly.Anomaly_Dataset_traces(args)
     elif args.data == 'uc_irv_mess':
         return ucim.Uc_Irvine_Message_Dataset(args)
     elif args.data == 'dbg':
@@ -157,6 +159,8 @@ def build_tasker(args, dataset):
         return nct.Static_Node_Cls_Tasker(args, dataset)
     elif args.task == 'anomaly_detection':
         return nat.Anomaly_Detection_Tasker(args, dataset)
+    elif args.task == 'anomaly_detection_iot_traces':
+        return nat.Anomaly_Detection_Tasker_IoT_traces(args, dataset)
 
     else:
         raise NotImplementedError('still need to implement the other tasks')
@@ -189,12 +193,16 @@ def build_gcn(args, tasker):
             return egcn_h.EGCN(gcn_args, activation=torch.nn.RReLU(), device=args.device, skipfeats=True)
         elif args.model == 'egcn_o':
             return egcn_o.EGCN(gcn_args, activation=torch.nn.RReLU(), device=args.device)
+        elif args.model == 'simple_gcn':
+            return mls.GCN(gcn_args, activation=torch.nn.RReLU()).to(args.device)
+        elif args.model == 'egcn_gat':
+            return  egcn_gat.EGCN(gcn_args, activation = torch.nn.RReLU(), device = args.device, gat=True)
         else:
             raise NotImplementedError('need to finish modifying the models')
 
 
 def build_classifier(args, tasker):
-    if not isinstance(tasker, nat.Anomaly_Detection_Tasker):
+    if not isinstance(tasker, nat.Anomaly_Detection_Tasker) and not isinstance(tasker, nat.Anomaly_Detection_Tasker_IoT_traces):
         if 'node_cls' == args.task or 'static_node_cls' == args.task:
             mult = 1
         else:
@@ -259,7 +267,7 @@ if __name__ == '__main__':
     args = u.parse_args(parser)
 
     if args.debug:
-        debugpy.listen(('0.0.0.0', 5678))
+        debugpy.listen(('127.0.0.1', 5678))
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
 
@@ -288,6 +296,7 @@ if __name__ == '__main__':
         seed = 123+rank  # int(time.time())+rank
     else:
         seed = args.seed  # +rank
+    print(f"Seed {seed}")
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
@@ -343,6 +352,7 @@ if __name__ == '__main__':
                 print("Loading best detector ....")
                 path = get_best_model(args=args,
                                       directory_path=os.path.join(args.save_folder, args.project_name))
+
                 gcnn = torch.load(path)
 
             trainer = tr.TrainerAnomaly(args,
