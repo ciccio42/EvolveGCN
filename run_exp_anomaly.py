@@ -267,8 +267,8 @@ if __name__ == '__main__':
     args = u.parse_args(parser)
 
     if args.debug:
-        debugpy.listen(('127.0.0.1', 5678))
         print("Waiting for debugger attach")
+        debugpy.listen(('0.0.0.0', 5678))
         debugpy.wait_for_client()
 
     global rank, wsize, use_cuda
@@ -353,7 +353,7 @@ if __name__ == '__main__':
                 path = get_best_model(args=args,
                                       directory_path=os.path.join(args.save_folder, args.project_name))
 
-                gcnn = torch.load(path)
+                gcnn = torch.load(path, weights_only=False)
 
             trainer = tr.TrainerAnomaly(args,
                                         splitter=splitter,

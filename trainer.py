@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import json
 import gc
 import copy
+from collections import OrderedDict
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -97,6 +98,45 @@ class TrainerAnomaly():
                         print('### w'+str(self.args.rank)+') ep ' +
                               str(e)+' - Early stop.')
                         break
+    
+    def check_test(self, split_name):
+        if os.path.exists(f'{self.chpt_dir}/predictions_{split_name}.json'):
+            try:
+                with open(f'{self.chpt_dir}/predictions_{split_name}.json', 'r') as fp:
+                    data = json.load(fp)
+                    
+                    last_indx = 0
+                    for capture_name in data[f'{split_name}/scores'].keys():
+                        for sequence_indx in data[f'{split_name}/scores'][capture_name].keys():
+                            for step in data[f'{split_name}/scores'][capture_name][sequence_indx]:
+                                last_indx += 1
+                    
+                    # get the splitter for the split_name
+                    if "test" not in split_name:
+                        # split = f"test_{split_name}"
+                        if split_name == 'iot_id20_benign':
+                            split = 'test_iotid20_benign'
+                        elif split_name == 'iot_id20_mixed':
+                            split = 'test_iotid20_mixed'
+                        elif split_name == 'iot_traces':
+                            split = 'test_traces'
+                    else:
+                        split = split_name
+                        
+                    if getattr(self.splitter, split) is not None:
+                        total_number_of_graphs = getattr(self.splitter, split).dataset.total_number_graphs
+                        
+                        if last_indx == total_number_of_graphs:
+                            print(f"Test {split_name} already done")
+                            return True, None
+                            
+                    print(f"Test {split_name} done but non completed")
+                    return False, data
+            except:
+                print(f"Test {split_name} not done")
+                return False, None
+        return False, None
+
 
     def test_anomaly(self, compute_thr=True, compute_metrics_flag=False):
         tolog = {}
@@ -130,25 +170,46 @@ class TrainerAnomaly():
         print(f"Testing threshold {threshold}")
 
         if not self.tasker.data.sequence:
-            self.run_test(split_name='validation',
-                           threshold=threshold)
-            self.run_test(split_name='iot_traces',
-                           threshold=threshold)
-            self.run_test(split_name='test_benign',
-                           threshold=threshold)
-            self.run_test(split_name='test_malicious',
-                           threshold=threshold)
-            self.run_test(split_name='iot_id20_benign',
-                           threshold=threshold)
-            self.run_test(split_name='iot_id20_mixed',
-                           threshold=threshold)
-            self.run_test(split_name='test_mixed',
-                          threshold=threshold)
-            self.run_test(split_name='iot_id20_benign',
-                          threshold=threshold)
-            self.run_test(split_name='iot_id20_mixed',
-                          threshold=threshold)
-
+            # self.run_test(split_name='validation',
+            #                threshold=threshold)
+            
+            done, resume = self.check_test('test_benign')
+            if not done:
+                self.run_test(split_name='test_benign',
+                            threshold=threshold,
+                            resume=resume)
+            
+            done, resume = self.check_test('test_malicious')  
+            if not done:
+                self.run_test(split_name='test_malicious',
+                            threshold=threshold,
+                            resume=resume)
+            
+            done, resume = self.check_test('test_mixed')  
+            if not done:
+                self.run_test(split_name='test_mixed',
+                            threshold=threshold,
+                            resume=resume)
+            
+            done, resume = self.check_test('iot_id20_benign')  
+            if not done:
+                self.run_test(split_name='iot_id20_benign',
+                            threshold=threshold,
+                            resume=resume)
+            
+            done, resume = self.check_test('iot_id20_mixed')  
+            if not done:
+                self.run_test(split_name='iot_id20_mixed',
+                            threshold=threshold,
+                            resume=resume)
+            
+            done, resume = self.check_test('iot_traces')  
+            if not done:
+                self.run_test(split_name='iot_traces',
+                            threshold=threshold,
+                            resume=resume)
+            
+            
         else:
             self.run_test(split_name='validation',
                            threshold=threshold)
@@ -167,7 +228,7 @@ class TrainerAnomaly():
             # self.run_test_sequence(split_name='test_iot_id20',
             #                        threshold=threshold)
 
-    def run_test(self, split_name, threshold, compute_metrics_flag=False):
+    def run_test(self, split_name, threshold, resume=None, compute_metrics_flag=False):
         tolog = {}
         # 3. Test with best threshold
         print(f"Running test on {split_name}....")
@@ -201,7 +262,7 @@ class TrainerAnomaly():
 
         self.detector.set_training(False)
         eval_scores, labels, inference_time = self.run_epoch(
-            split, -1, epoch_name, grad=False, test=True)
+            split, -1, epoch_name, grad=False, test=True, split_name=split_name, resume=resume)
 
         # Compute validation metrics
         if compute_metrics_flag:
@@ -226,7 +287,7 @@ class TrainerAnomaly():
             tolog[f'{split_name}/labels'] = labels
             tolog[f'{split_name}/threshold'] = threshold
             tolog[f'{split_name}/inference_time'] = inference_time
-            with open(f'{self.chpt_dir}/prediction_{split_name}.json', 'w') as fp:
+            with open(f'{self.chpt_dir}/predictions_{split_name}.json', 'w') as fp:
                 json.dump(tolog, fp)
             
     def run_test_sequence(self, split_name, threshold):
@@ -339,19 +400,51 @@ class TrainerAnomaly():
 
             return scores_epoch, labels_epoch
 
-    def run_epoch(self, split, epoch, set_name, grad, test=False):
+    def run_epoch(self, split, epoch, set_name, grad, test=False, split_name=None, resume=None):
 
         torch.set_grad_enabled(grad)
         tolog = {}
         loss_epoch = 0.0
         attr_error_epoch = 0.0
         stru_error_epoch = 0.0
-        scores_epoch = []
-        labels_epoch = []
-        inf_time_epoch = []
+        if resume is None:
+            scores_epoch = OrderedDict()
+            labels_epoch = OrderedDict()
+            inf_time_epoch = OrderedDict()
+            last_indx = -1
+        else:
+            scores_epoch = resume[f"{split_name}/scores"]
+            labels_epoch = resume[f"{split_name}/labels"]
+            inf_time_epoch = resume[f"{split_name}/inference_time"]
+            
+            # compute last indx
+            last_indx = 0
+            for capture_name in scores_epoch.keys():
+                for sequence_indx in scores_epoch[capture_name].keys():
+                    for step in scores_epoch[capture_name][sequence_indx]:
+                        last_indx += 1
+        
+        start_time = time.time()
+        
         for indx, s_list in enumerate(tqdm(split)):
+            
+            if indx < last_indx:
+                continue
+            
+            capture_name = str(s_list[0]['capture_name'])
+            sequence_indx = str(s_list[0]['sequence_indx'])
+            
+            if capture_name not in scores_epoch.keys():
+                scores_epoch[capture_name] = OrderedDict()
+                labels_epoch[capture_name] = OrderedDict()
+                inf_time_epoch[capture_name] = OrderedDict()
+            
+            if sequence_indx not in scores_epoch[capture_name].keys():
+                scores_epoch[capture_name][sequence_indx] = []
+                labels_epoch[capture_name][sequence_indx] = []
+                inf_time_epoch[capture_name][sequence_indx] = []
+                
             B = len(s_list)
-
             step = (epoch+1) * (indx+1)
             loss_batch = 0.0
             attr_error_batch = 0.0
@@ -431,12 +524,24 @@ class TrainerAnomaly():
                         #      s.label_sp[t]['vals'].cpu().detach().numpy()])
                         labels_step.extend(list(s.label_sp[t]['vals'].cpu().detach().numpy().astype(np.float64)))
                     
-                    scores_epoch.extend(scores_step)
-                    labels_epoch.extend(labels_step)
-                    inf_time_epoch.extend(inf_time_step)
+                    scores_epoch[capture_name][sequence_indx].append(scores_step)
+                    labels_epoch[capture_name][sequence_indx].append(labels_step)
+                    inf_time_epoch[capture_name][sequence_indx].append(inf_time_step)
+                    
                     del pred_attribute_list, pred_adj_list
                     gc.collect()
                     torch.cuda.empty_cache()
+                    
+                    elapsed_time = time.time() - start_time
+                    if elapsed_time > 21600:
+                        tolog[f'{split_name}/scores'] = scores_epoch
+                        tolog[f'{split_name}/labels'] = labels_epoch
+                        tolog[f'{split_name}/inference_time'] = inf_time_epoch
+                        with open(f'{self.chpt_dir}/predictions_{split_name}.json', "w") as fp:
+                            print("Preventing saving the file")
+                            json.dump(tolog, fp)
+                            exit()
+                    
             
             # average loss batch
             loss_batch = loss_batch/B

@@ -4,7 +4,7 @@ iot23_args:
   folder_iot_traces: /user/apaolillo/Output_Grafi/split_test/90k/base/IoT_traces_dataset_split_etdg
   folder_iot_id20: /user/apaolillo/Output_Grafi/split_test/90k/base/IoTID20_dataset_split_etdg
   only_benign: True
-  representation: tdg_graph
+  representation: etdg_graph
   feats_per_node: 57
   one_class: True
   test_sequence: False
@@ -27,7 +27,7 @@ compute_threshold: True # Se vuoi salvare il threshold -> in false solo dopo tra
 model: simple_gcn
 
 task: anomaly_detection
-wandb_log: True
+wandb_log: False
 project_name: GCN_DOMINANT_SCALE_64_90k_IoT23_tdg
 save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
 

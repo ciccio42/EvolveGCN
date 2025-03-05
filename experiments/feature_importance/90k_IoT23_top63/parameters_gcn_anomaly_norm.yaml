@@ -26,7 +26,7 @@ compute_threshold: True # Se vuoi salvare il threshold -> in false solo dopo tra
 model: simple_gcn
 
 task: anomaly_detection
-wandb_log: True
+wandb_log: False
 project_name: GCN_DOMINANT_SCALE_64_90k_IoT23_top63
 save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
 

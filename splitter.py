@@ -164,10 +164,11 @@ class splitter():
                                                   representation=tasker.data.representation)
                     print(f"test_iotid20 len {len(test_iotid20)}")
 
-                train = DataLoader(
-                    train, shuffle=True, num_workers=args.data_loading_params['num_workers'], batch_size=args.data_loading_params['batch_size'], collate_fn=collate_func)
-                dev = DataLoader(
-                    dev, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
+                if args.train:
+                    train = DataLoader(
+                        train, shuffle=True, num_workers=args.data_loading_params['num_workers'], batch_size=args.data_loading_params['batch_size'], collate_fn=collate_func)
+                    dev = DataLoader(
+                        dev, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
                 if not tasker.data.sequence:
                     test_benign = DataLoader(
                         test_benign, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
@@ -358,6 +359,7 @@ class AnomalyDataset(Dataset):
         self.data_dict = None
         self.total_number_graphs = 0
         self.number_of_captures = 0
+        self.number_of_sequences = 0
         self.indx_to_graph = OrderedDict()
         self.capture_start_end_indx = OrderedDict()
         self.tasker = tasker
@@ -451,6 +453,7 @@ class AnomalyDataset(Dataset):
                     if self.data_dict.get(capture, None) is None:
                         self.data_dict[capture] = list()
                     for sequence in self.data_dict_partition[capture]:
+                        self.number_of_sequences += 1
                         for graph in sequence:
                             if "mixed" in partition_name:
                                 partition = "mixed"
@@ -530,10 +533,14 @@ class AnomalyDataset(Dataset):
 
         t = self.tasker.get_sample(
             idx=idx,
+            sequence_indx=sequence_indx,
             start_indx=start_indx,
             end_indx=end_indx,
             graph_list=self.indx_to_graph,
             capture_name=capture,
             graph_type=graph_type,
             split=self.mode)
+        
+        t['capture_name'] = capture
+        t['sequence_indx'] = sequence_indx
         return t

@@ -29,7 +29,7 @@ compute_threshold: True
 model: egcn_o
 
 task: anomaly_detection
-wandb_log: True
+wandb_log: False
 project_name: EGCN_O_DOMINANT_SCALE_64_90k_IoT23_only_etdg
 save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
 

@@ -80,7 +80,7 @@ class Anomaly_Detection_Tasker():
             graph = pickle.load(f)
         return graph
 
-    def get_sample(self, idx, start_indx, end_indx, graph_list, capture_name, graph_type, split):
+    def get_sample(self, idx, sequence_indx, start_indx, end_indx, graph_list, capture_name, graph_type, split):
 
         hist_adj_list = []
         hist_adj_list_norm = []
@@ -91,7 +91,7 @@ class Anomaly_Detection_Tasker():
 
         # check if there are at least self.adj_mat_time_window graphs
         if (end_indx - start_indx)+1 < self.adj_mat_time_window:
-            time_window = end_indx - start_indx
+            time_window = (end_indx - start_indx)+1
             if end_indx == start_indx:
                 time_window = 1
         else:

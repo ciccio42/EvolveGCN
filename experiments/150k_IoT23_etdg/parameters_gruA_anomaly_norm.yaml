@@ -1,34 +1,34 @@
 data: iot23 #HELP: arxiv, bitcoin, aml_sim, dbg, elliptic, elliptic_temporal
 iot23_args:
-  folder: /user/apaolillo/Output_Grafi/split/150k/base/IoT23_dataset_split_etdg
-  folder_iot_traces: /user/apaolillo/Output_Grafi/split_test/150k/base/IoT_traces_dataset_split_etdg
-  folder_iot_id20: /user/apaolillo/Output_Grafi/split_test/150k/base/IoTID20_dataset_split_etdg
+  folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/150k/base/IoT23_dataset_split_etdg
+  folder_iot_traces: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/150k/base/IoT_traces_dataset_split_etdg
+  folder_iot_id20: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/150k/base/IoTID20_dataset_split_etdg
   only_benign: True
   representation: etdg_graph
   feats_per_node: 72
   one_class: True
   test_sequence: False
-  graph_base_folder: /user/apaolillo/Output_Grafi/150000/IoT23/base/
-  graph_base_iot_traces_folder: /user/apaolillo/Output_Grafi/150000/IoT_traces/base/
-  graph_base_iot_id20_folder: /user/apaolillo/Output_Grafi/150000/IoTID20/base/
+  graph_base_folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/150000/IoT23/base
+  graph_base_iot_traces_folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/150000/IoT_traces/base
+  graph_base_iot_id20_folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/150000/IoTID20/base
   normalize: True
-  path_min_max_vectors: /user/apaolillo/Output_Grafi/min_max_benign/150k/IoT23_min_max_benign/min_max_etdg_graph
-  sequence: False
+  path_min_max_vectors: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/min_max_benign/150k/IoT23_min_max_benign/min_max_etdg_graph
+  sequence: False 
 
 use_cuda: True
 use_logfile: True
-train: True
+train: False #Se vuoi allenare
 test: True
-off_line_test: True
+off_line_test: True #Altrimenti non il trainer
 test_epoch: -1
-compute_threshold: True
+compute_threshold: False # Se vuoi salvare il threshold -> in false solo dopo train
 
 model: gruA
 
 task: anomaly_detection
-wandb_log: True
+wandb_log: False
 project_name: GRUA_SCALE_64_150k_IoT23_etdg
-save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
+save_folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_code_checkpoint/Checkpoint_dataset_snap/checkpoint_dir/evolveGCN
 
 class_weights: [ 0.35, 0.65]
 use_2_hot_node_feats: False

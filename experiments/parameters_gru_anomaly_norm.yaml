@@ -29,24 +29,14 @@ train: False
 test: True
 off_line_test: True
 test_epoch: -1
-<<<<<<< HEAD:experiments/parameters_gru_anomaly_norm.yaml
 compute_threshold: False
-=======
-compute_threshold: True
->>>>>>> origin/apaolillo:experiments/60k_IoT23_etdg/parameters_gruA_anomaly_norm.yaml
 
 model: gruA
 
 task: anomaly_detection
-<<<<<<< HEAD:experiments/parameters_gru_anomaly_norm.yaml
-wandb_log: false
-project_name: GRU_SCALE_64
-save_folder: /user/frosa/anomaly_detection_code/checkpoint_dir
-=======
-wandb_log: True
+wandb_log: False
 project_name: GRUA_SCALE_64_60k_IoT23_etdg
 save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
->>>>>>> origin/apaolillo:experiments/60k_IoT23_etdg/parameters_gruA_anomaly_norm.yaml
 
 class_weights: [ 0.35, 0.65]
 use_2_hot_node_feats: False

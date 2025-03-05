@@ -4,7 +4,7 @@ iot_traces_args:
   folder_iot23: /user/apaolillo/Output_Grafi/split_test/150k/base/IoT23_dataset_split_etdg
   folder_iot_id20: /user/apaolillo/Output_Grafi/split_test/150k/base/IoTID20_dataset_split_etdg
   only_benign: True
-  representation: tdg_graph
+  representation: etdg_graph
   feats_per_node: 57
   one_class: True
   test_sequence: False
@@ -26,7 +26,7 @@ compute_threshold: True
 model: lstmA
 
 task: anomaly_detection_iot_traces
-wandb_log: True
+wandb_log: False
 project_name: LSTMA_SCALE_64_150k_IoT_Traces_tdg
 save_folder: /user/apaolillo/checkpoint_dir_2/evolveGCN
 

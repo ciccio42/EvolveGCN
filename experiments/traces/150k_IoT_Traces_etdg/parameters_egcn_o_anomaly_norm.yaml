@@ -26,7 +26,7 @@ compute_threshold: True
 model: egcn_o
 
 task: anomaly_detection_iot_traces
-wandb_log: True
+wandb_log: False
 project_name: EGCN_O_DOMINANT_SCALE_64_150k_IoT_Traces_etdg
 save_folder: /user/apaolillo/checkpoint_dir_2/evolveGCN
 

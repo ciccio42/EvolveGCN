@@ -26,7 +26,7 @@ compute_threshold: True # Se vuoi salvare il threshold -> in false solo dopo tra
 model: lstmA
 
 task: anomaly_detection
-wandb_log: True
+wandb_log: False
 project_name: LSTMA_SCALE_64_60k_IoT23_top63
 save_folder: /user/apaolillo/checkpoint_dir/evolveGCN
 

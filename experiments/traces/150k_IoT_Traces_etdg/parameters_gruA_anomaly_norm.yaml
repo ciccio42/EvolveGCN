@@ -26,7 +26,7 @@ compute_threshold: True
 model: gruA
 
 task: anomaly_detection_iot_traces
-wandb_log: True
+wandb_log: False
 project_name: GRUA_SCALE_64_150k_IoT_Traces_etdg
 save_folder: /user/apaolillo/checkpoint_dir_2/evolveGCN
 

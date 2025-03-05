@@ -1,0 +1,47 @@
+cp run_exp_evolve_150k_egcn_h_etdg.sh run_exp_evolve_120k_egcn_h_etdg.sh
+
+cp run_exp_evolve_150k_egcn_h_tdg.sh run_exp_evolve_120k_egcn_h_tdg.sh
+
+cp run_exp_evolve_150k_egcn_o_tdg.sh run_exp_evolve_120k_egcn_o_tdg.sh
+
+cp run_exp_evolve_150k_egcn_o_etdg.sh run_exp_evolve_120k_egcn_o_etdg.sh
+
+cp run_exp_evolve_150k_lstm_a_etdg.sh run_exp_evolve_120k_lstm_a_etdg.sh
+
+cp run_exp_evolve_150k_lstm_a_tdg.sh run_exp_evolve_120k_lstm_a_tdg.sh
+
+cp run_exp_evolve_150k_gru_a_etdg.sh run_exp_evolve_120k_gru_a_etdg.sh
+
+cp run_exp_evolve_150k_gru_a_tdg.sh run_exp_evolve_120k_gru_a_tdg.sh
+
+cp run_exp_evolve_150k_egcn_h_etdg.sh run_exp_evolve_90k_egcn_h_etdg.sh
+
+cp run_exp_evolve_150k_egcn_h_tdg.sh run_exp_evolve_90k_egcn_h_tdg.sh
+
+cp run_exp_evolve_150k_egcn_o_tdg.sh run_exp_evolve_90k_egcn_o_tdg.sh
+
+cp run_exp_evolve_150k_egcn_o_etdg.sh run_exp_evolve_90k_egcn_o_etdg.sh
+
+cp run_exp_evolve_150k_lstm_a_etdg.sh run_exp_evolve_90k_lstm_a_etdg.sh
+
+cp run_exp_evolve_150k_lstm_a_tdg.sh run_exp_evolve_90k_lstm_a_tdg.sh
+
+cp run_exp_evolve_150k_gru_a_etdg.sh run_exp_evolve_90k_gru_a_etdg.sh
+
+cp run_exp_evolve_150k_gru_a_tdg.sh run_exp_evolve_90k_gru_a_tdg.sh
+
+cp run_exp_evolve_150k_egcn_h_etdg.sh run_exp_evolve_60k_egcn_h_etdg.sh
+
+cp run_exp_evolve_150k_egcn_h_tdg.sh run_exp_evolve_60k_egcn_h_tdg.sh
+
+cp run_exp_evolve_150k_egcn_o_tdg.sh run_exp_evolve_60k_egcn_o_tdg.sh
+
+cp run_exp_evolve_150k_egcn_o_etdg.sh run_exp_evolve_60k_egcn_o_etdg.sh
+
+cp run_exp_evolve_150k_lstm_a_etdg.sh run_exp_evolve_60k_lstm_a_etdg.sh
+
+cp run_exp_evolve_150k_lstm_a_tdg.sh run_exp_evolve_60k_lstm_a_tdg.sh
+
+cp run_exp_evolve_150k_gru_a_etdg.sh run_exp_evolve_60k_gru_a_etdg.sh
+
+cp run_exp_evolve_150k_gru_a_tdg.sh run_exp_evolve_60k_gru_a_tdg.sh

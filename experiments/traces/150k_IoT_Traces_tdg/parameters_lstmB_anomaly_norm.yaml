@@ -4,7 +4,7 @@ iot23_args:
   folder_iot_traces: /user/apaolillo/Output_Grafi/split_test/150k/base/IoT_traces_dataset_split_etdg
   folder_iot_id20: /user/apaolillo/Output_Grafi/split_test/150k/base/IoTID20_dataset_split_etdg
   only_benign: True
-  representation: tdg_graph
+  representation: etdg_graph
   feats_per_node: 57
   one_class: True
   test_sequence: False
