@@ -1,6 +1,6 @@
 data: iot23 
 iot23_args:
-  folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/60k/base/IoT23_dataset_split_etdg
+  folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split/60k/base/IoT23_dataset_split_etdg
   folder_iot_traces: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/60k/base/IoT_traces_dataset_split_etdg
   folder_iot_id20: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/60k/base/IoTID20_dataset_split_etdg
   only_benign: True

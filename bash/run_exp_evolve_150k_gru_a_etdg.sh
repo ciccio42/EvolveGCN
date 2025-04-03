@@ -7,6 +7,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
 #SBATCH --export=ALL
+#SBATCH --exclusive
 
 BASE_PATH="/home/rsofnc000/Anomaly_Detection/anomaly_detection_code/gnn-network-analysis/dynamic_graphs/EvolveGCN"
 

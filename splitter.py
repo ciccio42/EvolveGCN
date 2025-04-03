@@ -164,11 +164,12 @@ class splitter():
                                                   representation=tasker.data.representation)
                     print(f"test_iotid20 len {len(test_iotid20)}")
 
+                print(f"Num workers {args.data_loading_params['num_workers']}")
                 if args.train:
                     train = DataLoader(
                         train, shuffle=True, num_workers=args.data_loading_params['num_workers'], batch_size=args.data_loading_params['batch_size'], collate_fn=collate_func)
-                    dev = DataLoader(
-                        dev, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
+                dev = DataLoader(
+                    dev, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
                 if not tasker.data.sequence:
                     test_benign = DataLoader(
                         test_benign, shuffle=False, num_workers=args.data_loading_params['num_workers'], batch_size=1, collate_fn=collate_func)
@@ -366,6 +367,8 @@ class AnomalyDataset(Dataset):
         self.representation = representation
         self.mode = split
 
+        self.snap = int(path.split('/')[-3].split('k')[0])*1000
+        self.last_indx = -1
         if split == "train":
             self.data_dict_path = os.path.join(path, "train.json")
         elif split == "val":
@@ -531,6 +534,9 @@ class AnomalyDataset(Dataset):
         else:
             graph_type = None
 
+        if idx < self.last_indx:
+            return None
+        
         t = self.tasker.get_sample(
             idx=idx,
             sequence_indx=sequence_indx,
@@ -539,7 +545,8 @@ class AnomalyDataset(Dataset):
             graph_list=self.indx_to_graph,
             capture_name=capture,
             graph_type=graph_type,
-            split=self.mode)
+            split=self.mode,
+            snapshot=self.snap)
         
         t['capture_name'] = capture
         t['sequence_indx'] = sequence_indx

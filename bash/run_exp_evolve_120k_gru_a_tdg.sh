@@ -7,6 +7,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
 #SBATCH --export=ALL
+#SBATCH --exclusive
 
 BASE_PATH="/home/rsofnc000/Anomaly_Detection/anomaly_detection_code/gnn-network-analysis/dynamic_graphs/EvolveGCN"
 
@@ -25,7 +26,7 @@ for ((i = 0; i < ${#configurations[@]}; i += 1)); do
     echo "gru-A norm"
     YAML_FILE="./experiments/$DATA_PATH/parameters_gruA_anomaly_norm.yaml"
     echo "$YAML_FILE"
-    srun  python run_exp_anomaly.py --config_file "$YAML_FILE"
+    srun python run_exp_anomaly.py --config_file "$YAML_FILE"
 
 done
 

@@ -80,8 +80,8 @@ class Anomaly_Detection_Tasker():
             graph = pickle.load(f)
         return graph
 
-    def get_sample(self, idx, sequence_indx, start_indx, end_indx, graph_list, capture_name, graph_type, split):
-
+    def get_sample(self, idx, sequence_indx, start_indx, end_indx, graph_list, capture_name, graph_type, split, snapshot):
+        max_time = 600000 # 10 minutes in milliseconds
         hist_adj_list = []
         hist_adj_list_norm = []
         hist_adj_list_partial = []
@@ -90,12 +90,15 @@ class Anomaly_Detection_Tasker():
         hist_node_labels = []
 
         # check if there are at least self.adj_mat_time_window graphs
+        # compute the maximum time window
+        self.adj_mat_time_window = int(max_time / snapshot)
+        
         if (end_indx - start_indx)+1 < self.adj_mat_time_window:
             time_window = (end_indx - start_indx)+1
             if end_indx == start_indx:
                 time_window = 1
         else:
-            time_window = self.adj_mat_time_window
+            time_window = self.adj_mat_time_window #(end_indx - start_indx)+1 #self.adj_mat_time_window
 
         if (end_indx - idx)+1 < time_window:
             # if (idx - time_window) < start_indx:
@@ -169,7 +172,8 @@ class Anomaly_Detection_Tasker():
                 'vals': label_vals}
 
     def get_node_features(self, graph, num_nodes, capture, graph_type, graph_name):
-        features = graph['node_features']
+        features = graph['node_features'][:, :self.feats_per_node]
+        
         # normalize features
         if self.data.normalize:
             features = (features-self.data.min_vector) / \

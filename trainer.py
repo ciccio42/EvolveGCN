@@ -110,7 +110,8 @@ class TrainerAnomaly():
                         for sequence_indx in data[f'{split_name}/scores'][capture_name].keys():
                             for step in data[f'{split_name}/scores'][capture_name][sequence_indx]:
                                 last_indx += 1
-                    
+                                
+                    print(f"Split name {split_name} - Last index {last_indx}")
                     # get the splitter for the split_name
                     if "test" not in split_name:
                         # split = f"test_{split_name}"
@@ -128,14 +129,14 @@ class TrainerAnomaly():
                         
                         if last_indx == total_number_of_graphs:
                             print(f"Test {split_name} already done")
-                            return True, None
+                            return True, None, last_indx
                             
                     print(f"Test {split_name} done but non completed")
-                    return False, data
+                    return False, data, last_indx
             except:
                 print(f"Test {split_name} not done")
-                return False, None
-        return False, None
+                return False, None, -1
+        return False, None, -1
 
 
     def test_anomaly(self, compute_thr=True, compute_metrics_flag=False):
@@ -145,16 +146,16 @@ class TrainerAnomaly():
             # 1. Run inference on validation set
             # labels have indx and value
             self.detector.set_training(False)
-            eval_scores, labels = self.run_epoch(
+            eval_scores, labels, inference_time = self.run_epoch(
                 self.splitter.dev, -1, None, grad=False, test=True)
             # save scores
             os.makedirs(os.path.join(self.chpt_dir,
-                        "threshold"), exist_ok=True)
+                        "new_threshold"), exist_ok=True)
 
-            with open(os.path.join(self.chpt_dir, "threshold", "score_list.pkl"), "wb") as handle:
+            with open(os.path.join(self.chpt_dir, "new_threshold", "score_list.pkl"), "wb") as handle:
                 pickle.dump(eval_scores, handle, protocol=4)
 
-            with open(os.path.join(self.chpt_dir, "threshold", "label_list.pkl"), "wb") as handle:
+            with open(os.path.join(self.chpt_dir, "new_threshold", "label_list.pkl"), "wb") as handle:
                 pickle.dump(labels, handle, protocol=4)
 
             # 2. Find the best threshold
@@ -169,45 +170,63 @@ class TrainerAnomaly():
 
         print(f"Testing threshold {threshold}")
 
+        start_time = time.time()
         if not self.tasker.data.sequence:
+            # done = False
+            # resume = None
+            # done, resume = self.check_test('validation')  
             # self.run_test(split_name='validation',
-            #                threshold=threshold)
+            #                threshold=threshold,
+            #                resume=resume,
+            #                start_time=start_time)
             
-            done, resume = self.check_test('test_benign')
+            done, resume, last_indx = self.check_test('test_benign')
             if not done:
                 self.run_test(split_name='test_benign',
                             threshold=threshold,
-                            resume=resume)
+                            resume=resume,
+                           start_time=start_time,
+                           last_indx=last_indx)
             
-            done, resume = self.check_test('test_malicious')  
+            done, resume, last_indx = self.check_test('test_malicious')  
             if not done:
                 self.run_test(split_name='test_malicious',
                             threshold=threshold,
-                            resume=resume)
+                            resume=resume,
+                           start_time=start_time,
+                           last_indx=last_indx)
             
-            done, resume = self.check_test('test_mixed')  
+            done, resume, last_indx = self.check_test('test_mixed')  
             if not done:
                 self.run_test(split_name='test_mixed',
                             threshold=threshold,
-                            resume=resume)
+                            resume=resume,
+                           start_time=start_time,
+                           last_indx=last_indx)
             
-            done, resume = self.check_test('iot_id20_benign')  
+            done, resume, last_indx = self.check_test('iot_id20_benign')  
             if not done:
                 self.run_test(split_name='iot_id20_benign',
                             threshold=threshold,
-                            resume=resume)
+                            resume=resume,
+                           start_time=start_time,
+                           last_indx=last_indx)
             
-            done, resume = self.check_test('iot_id20_mixed')  
+            done, resume, last_indx = self.check_test('iot_id20_mixed')  
             if not done:
                 self.run_test(split_name='iot_id20_mixed',
                             threshold=threshold,
-                            resume=resume)
+                            resume=resume,
+                           start_time=start_time,
+                           last_indx=last_indx)
             
-            done, resume = self.check_test('iot_traces')  
+            done, resume, last_indx = self.check_test('iot_traces')  
             if not done:
                 self.run_test(split_name='iot_traces',
                             threshold=threshold,
-                            resume=resume)
+                            resume=resume,
+                           start_time=start_time,
+                           last_indx=last_indx)
             
             
         else:
@@ -228,7 +247,7 @@ class TrainerAnomaly():
             # self.run_test_sequence(split_name='test_iot_id20',
             #                        threshold=threshold)
 
-    def run_test(self, split_name, threshold, resume=None, compute_metrics_flag=False):
+    def run_test(self, split_name, threshold, resume=None, compute_metrics_flag=False, start_time=-1, last_indx = -1):
         tolog = {}
         # 3. Test with best threshold
         print(f"Running test on {split_name}....")
@@ -261,8 +280,10 @@ class TrainerAnomaly():
             split = self.splitter.test_iotid20
 
         self.detector.set_training(False)
+        split.dataset.last_indx = last_indx
         eval_scores, labels, inference_time = self.run_epoch(
-            split, -1, epoch_name, grad=False, test=True, split_name=split_name, resume=resume)
+            split, -1, epoch_name, grad=False, test=True, split_name=split_name, resume=resume,
+            start_time=start_time)
 
         # Compute validation metrics
         if compute_metrics_flag:
@@ -400,7 +421,7 @@ class TrainerAnomaly():
 
             return scores_epoch, labels_epoch
 
-    def run_epoch(self, split, epoch, set_name, grad, test=False, split_name=None, resume=None):
+    def run_epoch(self, split, epoch, set_name, grad, test=False, split_name=None, resume=None, start_time = -1):
 
         torch.set_grad_enabled(grad)
         tolog = {}
@@ -424,11 +445,11 @@ class TrainerAnomaly():
                     for step in scores_epoch[capture_name][sequence_indx]:
                         last_indx += 1
         
-        start_time = time.time()
-        
+        # start_time = time.time()
         for indx, s_list in enumerate(tqdm(split)):
             
             if indx < last_indx:
+                # print(f"Skipping {indx}")
                 continue
             
             capture_name = str(s_list[0]['capture_name'])
@@ -532,15 +553,16 @@ class TrainerAnomaly():
                     gc.collect()
                     torch.cuda.empty_cache()
                     
-                    elapsed_time = time.time() - start_time
-                    if elapsed_time > 21600:
-                        tolog[f'{split_name}/scores'] = scores_epoch
-                        tolog[f'{split_name}/labels'] = labels_epoch
-                        tolog[f'{split_name}/inference_time'] = inf_time_epoch
-                        with open(f'{self.chpt_dir}/predictions_{split_name}.json', "w") as fp:
-                            print("Preventing saving the file")
-                            json.dump(tolog, fp)
-                            exit()
+                    if start_time != -1:
+                        elapsed_time = time.time() - start_time
+                        if elapsed_time > 21600:
+                            tolog[f'{split_name}/scores'] = scores_epoch
+                            tolog[f'{split_name}/labels'] = labels_epoch
+                            tolog[f'{split_name}/inference_time'] = inf_time_epoch
+                            with open(f'{self.chpt_dir}/predictions_{split_name}.json', "w") as fp:
+                                print("Preventing saving the file")
+                                json.dump(tolog, fp)
+                                exit()
                     
             
             # average loss batch
@@ -714,13 +736,24 @@ class TrainerAnomaly():
 
     def find_best_threshold(self):
         # load scores and labels
-        with open(os.path.join(self.chpt_dir, "threshold", "score_list.pkl"), "rb") as handle:
+        with open(os.path.join(self.chpt_dir, "new_threshold", "score_list.pkl"), "rb") as handle:
             eval_scores = pickle.load(handle)  # B x T x Nodes
 
-        with open(os.path.join(self.chpt_dir, "threshold", "label_list.pkl"), "rb") as handle:
+        with open(os.path.join(self.chpt_dir, "new_threshold", "label_list.pkl"), "rb") as handle:
             labels = pickle.load(handle)
 
         # 1. Find the max score
+        y_score_list = []
+        y_labels_list = []
+        for capture_name in eval_scores.keys():
+            for sequence_indx in eval_scores[capture_name].keys():
+                for indx, sequence in enumerate(eval_scores[capture_name][sequence_indx]):
+                    y_score_list.extend(sequence)
+                    y_labels_list.extend(labels[capture_name][sequence_indx][indx])
+                    
+        eval_scores = y_score_list
+        labels = y_labels_list
+        
         max_score = self.find_max_score(eval_scores, labels)
         threshold = max_score/2
         optimal_threshold, threshold_list, fp_list = self.find_optimal_threshold(
@@ -733,8 +766,9 @@ class TrainerAnomaly():
 
         # save optimal_threshold
         print("Optimal threshold to use in the next step: ", optimal_threshold)
+        os.makedirs(os.path.join(self.chpt_dir, "new_threshold"), exist_ok=True)
         threshold_file_path = os.path.join(
-            self.chpt_dir, "threshold", "optimal_threshold.txt")
+            self.chpt_dir, "new_threshold", "optimal_threshold.txt")
         with open(threshold_file_path, "w") as f:
             f.write(str(optimal_threshold.item()))
 
@@ -743,14 +777,15 @@ class TrainerAnomaly():
     def find_max_score(self, y_scores, y_labels):
         max_score = -np.inf
 
-        for b in range(len(y_scores)):
-            for t in range(len(y_scores[b])):
-                # max_score_for_sample = torch.max(
-                #     y_scores[b][t][y_labels[b][t][0]])
-                max_score_for_sample = torch.max(
-                    y_scores[b][t])
-                if max_score_for_sample > max_score:
-                    max_score = max_score_for_sample
+        max_score = np.max(y_scores)
+        # for b in range(len(y_scores)):
+        #     for t in range(len(y_scores[b])):
+        #         # max_score_for_sample = torch.max(
+        #         #     y_scores[b][t][y_labels[b][t][0]])
+        #         max_score_for_sample = np.max(
+        #             y_scores[b][t])
+        #         if max_score_for_sample > max_score:
+        #             max_score = max_score_for_sample
 
         return max_score
 
@@ -778,11 +813,17 @@ class TrainerAnomaly():
             #     # sample elements true_negative nodes, predicted as 1
             #     fp_pred = y_pred[s][true_negative_indx] == 1
             #     fp += torch.count_nonzero(fp_pred)
+            # for i in range(len(y_pred)):
+            #     for n_indx in range(y_pred[i].shape[0]):
+            #         if y_pred[i][n_indx] == 1 and y_true[i][n_indx] == 0:
+            #             fp += 1
+            # return fp
+        
             for i in range(len(y_pred)):
-                for n_indx in range(y_pred[i].shape[0]):
-                    if y_pred[i][n_indx] == 1 and y_true[i][n_indx] == 0:
-                        fp += 1
-            return fp
+                if y_pred[i] == 1 and y_true[i] == 0:
+                    fp += 1
+            
+            return fp    
 
         # create y_pred
         y_pred = []
@@ -791,12 +832,17 @@ class TrainerAnomaly():
         fp_list = []
         # number of predictions
         n_pred = 0.0
-        for b in range(len(y_scores)):
-            for t in range(len(y_scores[b])):
-                # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
-                y_pred.append(y_scores[b][t] > threshold)
-                y_true.append(y_labels[b][t][1])
-                n_pred += y_labels[b][t][1].shape[0]
+        # for b in range(len(y_scores)):
+        #     for t in range(len(y_scores[b])):
+        #         # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+        #         y_pred.append(y_scores[b][t] > threshold)
+        #         y_true.append(y_labels[b][t][1])
+        #         n_pred += y_labels[b][t][1].shape[0]
+
+        for indx, sample in enumerate(y_scores):
+            y_pred.append(sample > threshold)
+            y_true.append(y_labels[indx])
+            n_pred += 1
 
         fp = find_fp(y_true, y_pred)
         fp_percentage = (fp / n_pred) * 100
@@ -811,12 +857,18 @@ class TrainerAnomaly():
                 y_true = []
                 n_pred = 0.0
                 final_threshold += (final_threshold * 0.05)
-                for b in range(len(y_scores)):
-                    for t in range(len(y_scores[b])):
-                        # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
-                        y_pred.append(y_scores[b][t] > final_threshold)
-                        y_true.append(y_labels[b][t][1])
-                        n_pred += y_labels[b][t][1].shape[0]
+                
+                # for b in range(len(y_scores)):
+                #     for t in range(len(y_scores[b])):
+                #         # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+                #         y_pred.append(y_scores[b][t] > final_threshold)
+                #         y_true.append(y_labels[b][t][1])
+                #         n_pred += y_labels[b][t][1].shape[0]
+                for indx, sample in enumerate(y_scores):
+                    y_pred.append(sample > final_threshold)
+                    y_true.append(y_labels[indx])
+                    n_pred += 1
+                    
                 fp = find_fp(y_true, y_pred)
                 fp_percentage = (fp / n_pred) * 100
                 threshold_list.append(copy.deepcopy(final_threshold))
@@ -832,12 +884,18 @@ class TrainerAnomaly():
                 y_true = []
                 n_pred = 0.0
                 final_threshold -= (final_threshold * 0.05)
-                for b in range(len(y_scores)):
-                    for t in range(len(y_scores[b])):
-                        # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
-                        y_pred.append(y_scores[b][t] > final_threshold)
-                        y_true.append(y_labels[b][t][1])
-                        n_pred += y_labels[b][t][1].shape[0]
+                
+                # for b in range(len(y_scores)):
+                #     for t in range(len(y_scores[b])):
+                #         # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+                #         y_pred.append(y_scores[b][t] > final_threshold)
+                #         y_true.append(y_labels[b][t][1])
+                #         n_pred += y_labels[b][t][1].shape[0]
+                for indx, sample in enumerate(y_scores):
+                    y_pred.append(sample > final_threshold)
+                    y_true.append(y_labels[indx])
+                    n_pred += 1
+                
                 fp = find_fp(y_true, y_pred)
                 fp_percentage = (fp / n_pred) * 100
                 threshold_list.append(copy.deepcopy(final_threshold))
@@ -853,12 +911,18 @@ class TrainerAnomaly():
                 y_true = []
                 n_pred = 0.0
                 final_threshold += final_threshold * 0.05
-                for b in range(len(y_scores)):
-                    for t in range(len(y_scores[b])):
-                        # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
-                        y_pred.append(y_scores[b][t] > final_threshold)
-                        y_true.append(y_labels[b][t][1])
-                        n_pred += y_labels[b][t][1].shape[0]
+                
+                # for b in range(len(y_scores)):
+                #     for t in range(len(y_scores[b])):
+                #         # y_pred.append(y_scores[b][t][y_labels[b][t][0]] > threshold)
+                #         y_pred.append(y_scores[b][t] > final_threshold)
+                #         y_true.append(y_labels[b][t][1])
+                #         n_pred += y_labels[b][t][1].shape[0]
+                for indx, sample in enumerate(y_scores):
+                    y_pred.append(sample > final_threshold)
+                    y_true.append(y_labels[indx])
+                    n_pred += 1
+                
                 fp = find_fp(y_true, y_pred)
                 fp_percentage = (fp / n_pred) * 100
                 threshold_list.append(copy.deepcopy(final_threshold))

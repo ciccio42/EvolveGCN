@@ -1,6 +1,6 @@
 data: iot23 #HELP: arxiv, bitcoin, aml_sim, dbg, elliptic, elliptic_temporal
 iot23_args:
-  folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/60k/base/IoT23_dataset_split_etdg
+  folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split/60k/base/IoT23_dataset_split_etdg
   folder_iot_traces: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/60k/base/IoT_traces_dataset_split_etdg
   folder_iot_id20: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/60k/base/IoTID20_dataset_split_etdg
   only_benign: True
@@ -55,7 +55,7 @@ num_hist_steps_min: 1
 num_hist_steps_max: 1
 data_loading_params:
   batch_size: 4
-  num_workers: 8
+  num_workers: 16
 
 gcn_parameters:
   feats_per_node: 72

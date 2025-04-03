@@ -1,6 +1,6 @@
 data: iot23 #HELP: arxiv, bitcoin, aml_sim, dbg, elliptic, elliptic_temporal
 iot23_args:
-  folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/90k/base/IoT23_dataset_split_etdg
+  folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split/90k/base/IoT23_dataset_split_etdg
   folder_iot_traces: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/90k/base/IoT_traces_dataset_split_etdg
   folder_iot_id20: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/split_test/90k/base/IoTID20_dataset_split_etdg
   only_benign: True
@@ -12,7 +12,7 @@ iot23_args:
   graph_base_iot_traces_folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/90000/IoT_traces/base
   graph_base_iot_id20_folder: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/90000/IoTID20/base
   normalize: True
-  path_min_max_vectors: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/min_max_benign/90k/IoT23_min_max_benign/min_max_etdg_graph
+  path_min_max_vectors: /home/rsofnc000/Anomaly_Detection/anomaly_detection_dataset/min_max_benign/90k/IoT23_min_max_benign/min_max_tdg_graph
   sequence: False 
 
 use_cuda: True
