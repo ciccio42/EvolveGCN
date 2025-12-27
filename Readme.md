@@ -1,88 +1,61 @@
 EvolveGCN
 =====
+This is a fork from the original EvolveGCN [repo](https://github.com/IBM/EvolveGCN.git).
 
-This repository contains the code for [EvolveGCN: Evolving Graph Convolutional Networks for Dynamic Graphs](https://arxiv.org/abs/1902.10191), published in AAAI 2020.
+This repository has been used as it implements the time-dependent methods used in the paper *Graph Neural Networks for IoT Security: A Comparative Study*, 
 
-## Data
+DOI: https://doi.org/10.1016/j.iot.2025.101863
 
-7 datasets were used in the paper:
+# Setup
+To setup the workspace (Conda env and Dataset) follow the instructions reported [here](https://github.com/MiviaLab/Graph-Neural-Networks-for-IoT-Security-A-Comparative-Study.git).
 
-- stochastic block model: See the 'data' folder. Untar the file for use.
-- bitcoin OTC: Downloadable from http://snap.stanford.edu/data/soc-sign-bitcoin-otc.html
-- bitcoin Alpha: Downloadable from http://snap.stanford.edu/data/soc-sign-bitcoin-alpha.html
-- uc_irvine: Downloadable from http://konect.uni-koblenz.de/networks/opsahl-ucsocial
-- autonomous systems: Downloadable from http://snap.stanford.edu/data/as-733.html
-- reddit hyperlink network: Downloadable from http://snap.stanford.edu/data/soc-RedditHyperlinks.html
-- elliptic: A preprocessed version of https://www.kaggle.com/ellipticco/elliptic-data-set is provided in the following link: ~~https://ibm.box.com/s/j04m8lwoqktjixke2gj7lgllrvvdidme.~~ Untar the file in the 'data' folder for use.
+# Organization
 
-Update on elliptic: The box link is no longer valid. Please see the [instruction](elliptic_construction.md) to manually prepare the preprocessed version.
- 
-For downloaded data sets please place them in the 'data' folder.
+The **experiments** folder contains the `.yaml` configuration files that define the parameters for each experiment and model.
 
-## Requirements
-  * PyTorch 1.0 or higher
-  * Python 3.6
+For example:
+- **experiments/60k_IoT23_etdg** contains the model configuration files used to run experiments with a 1M snapshot size and the ETDG representation.
+- **parameters_egcn_h_anomaly_norm.yaml** contains the configuration file for the EGCN-H model.
 
-## Set up with Docker
-
-This docker file describes a container that allows you to run the experiments on any Unix-based machine. GPU availability is recommended to train the models. Otherwise, set the use_cuda flag in parameters.yaml to false.
-
-### Requirements
-
-- [install docker](https://docs.docker.com/install/)
-- [install nvidia drivers](https://www.nvidia.com/Download/index.aspx?lang=en-us)
-
-### Installation
-
-#### 1. Build the image
-
-From this folder you can create the image
-
-```sh
-sudo docker build -t gcn_env:latest docker-set-up/
-```
-
-#### 2. Start the container
-
-Start the container
-
-```sh
-sudo docker run -ti  --gpus all -v $(pwd):/evolveGCN  gcn_env:latest
-```
-
-This will start a bash session in the container.
-
-## Usage
-
-Set --config_file with a yaml configuration file to run the experiments. For example:
-
-```sh
-python run_exp.py --config_file ./experiments/parameters_example.yaml
-```
-
-Most of the parameters in the yaml configuration file are self-explanatory. For hyperparameters tuning, it is possible to set a certain parameter to 'None' and then set a min and max value. Then, each run will pick a random value within the boundaries (for example: 'learning_rate', 'learning_rate_min' and 'learning_rate_max').
-The 'experiments' folder contains one file for each result reported in the [EvolveGCN paper](https://arxiv.org/abs/1902.10191).
-
-Setting 'use_logfile' to True in the configuration yaml will output a file, in the 'log' directory, containing information about the experiment and validation metrics for the various epochs. The file could be manually analyzed, alternatively 'log_analyzer.py' can be used to automatically parse a log file and to retrieve the evaluation metrics at the best validation epoch. For example:
-```sh
-python log_analyzer.py log/filename.log
-```
+For `.yaml` files, the **most important parameters** are:
+- **folder**: path to the IoT23 split JSON file  
+- **folder_iot_traces**: path to the IoT Traces test split JSON file  
+- **folder_iot_id20**: path to the IoTID20 split JSON file  
+- **graph_base_folder**: path to the IoT23 graphs directory  
+- **graph_base_iot_traces_folder**: path to the IoT Traces graphs directory  
+- **graph_base_iot_id20_folder**: path to the IoTID20 graphs directory  
+- **normalize**: set to `True` to normalize node embeddings, `False` otherwise  
+- **path_min_max_vectors**: path to the folder containing the `.npz` file with minimum and maximum values  
+- **save_folder**: path where model checkpoints will be saved 
+- **train**: True whether you want to train, False otherwise
+- **test**: True whether you want to perform test at the end of training
+- **off_line_test**: True whether you want to run test after trainining, otherwise False
+- **compute_threshold**: True whether you want to compute the threshold for testing, False otherwise
 
 
-## Reference
+**Important**: You can use the values in the existing files as a reference, but you must modify them according to your directory structure.
 
-[1] Aldo Pareja, Giacomo Domeniconi, Jie Chen, Tengfei Ma, Toyotaro Suzumura, Hiroki Kanezashi, Tim Kaler, Tao B. Schardl, and Charles E. Leiserson. [EvolveGCN: Evolving Graph Convolutional Networks for Dynamic Graphs](https://arxiv.org/abs/1902.10191). AAAI 2020.
+# How to run
 
-## BibTeX entry
+```bash
+# Train
+# In .yaml file set: 
+# train: True
+# test: False
+# off_line_test: False
+# test_epoch: -1
+# compute_threshold: False
+cd bash
+sbatch run_exp_evolve_[TIMESTAMP]K_[MODEL_NAME]_[REPRESENTATION].sh
 
-Please cite the paper if you use this code in your work:
+# Test
+# In .yaml file set: 
+# train: False
+# test: True
+# off_line_test: True
+# test_epoch: -1
+# compute_threshold: True
+cd bash
+sbatch run_exp_evolve_[TIMESTAMP]K_[MODEL_NAME]_[REPRESENTATION].sh
 
-
-```
-@INPROCEEDINGS{egcn,
-  AUTHOR = {Aldo Pareja and Giacomo Domeniconi and Jie Chen and Tengfei Ma and Toyotaro Suzumura and Hiroki Kanezashi and Tim Kaler and Tao B. Schardl and Charles E. Leiserson},
-  TITLE = {{EvolveGCN}: Evolving Graph Convolutional Networks for Dynamic Graphs},
-  BOOKTITLE = {Proceedings of the Thirty-Fourth AAAI Conference on Artificial Intelligence},
-  YEAR = {2020},
-}
 ```

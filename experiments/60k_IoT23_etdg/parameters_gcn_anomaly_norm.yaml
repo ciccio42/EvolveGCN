@@ -17,11 +17,11 @@ iot23_args:
 
 use_cuda: True
 use_logfile: True
-train: True #Se vuoi allenare
+train: True # True whether you want to train, False otherwise
 test: True
-off_line_test: True #Altrimenti non il trainer
+off_line_test: True # True whether you want to run test after trainining, otherwise False
 test_epoch: -1
-compute_threshold: True # Se vuoi salvare il threshold -> in false solo dopo train
+compute_threshold: True # True whether you want to compute the threshold for testing, False otherwise
 
 model: simple_gcn
 
